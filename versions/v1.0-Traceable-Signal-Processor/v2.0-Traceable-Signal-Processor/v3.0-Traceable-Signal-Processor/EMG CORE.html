@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMG Core Analysis System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* General Modern Dark Theme Setup */
+        body, html {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 - Deep background */
+            color: #e2e8f0; /* Light Slate for main text */
+        }
+        
+        /* Custom scrollbar for better dark mode look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; /* Slate 800 */ }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* Slate 600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* Mermaid Graph specific styles for dark mode */
+        .mermaid-container {
+             background-color: #1e293b; /* Slate 800 */
+             border: 1px solid #334155; /* Slate 700 */
+             padding: 1rem;
+             border-radius: 0.75rem;
+             overflow: auto;
+        }
+        /* Ensure mermaid text is visible */
+        .mermaid svg * { color: #e2e8f0 !important; fill: #e2e8f0 !important; stroke: #e2e8f0 !important; }
+        
+        /* Modern Button Transition and Shadow */
+        .modern-btn {
+            border-radius: 0.75rem; /* Slightly more rounded */
+            transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+            box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.3); /* Stronger shadow */
+        }
+        .modern-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.4);
+        }
+        .modern-btn:disabled {
+            box-shadow: none;
+            transform: none;
+        }
+        
+        /* Card Styling */
+        .emg-card {
+            background-color: #1e293b; /* Slate 800 */
+            border: 1px solid #334155; /* Slate 700 */
+            border-radius: 1.25rem; /* More pronounced rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Input Styling */
+        .emg-input {
+            background-color: #0f172a; /* Slate 900 for input background */
+            border: 1px solid #334155; /* Slate 700 */
+            border-radius: 0.75rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .emg-input:focus {
+            border-color: #22d3ee; /* Cyan 400 */
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.5); /* Glowing focus ring */
+        }
+    </style>
+</head>
+<body class="font-sans">
+
+    <!-- Main Application Grid -->
+    <div class="min-h-screen p-4 sm:p-6 lg:p-8 flex flex-col">
+        <main class="flex-grow grid grid-cols-1 lg:grid-cols-10 gap-8 max-w-7xl mx-auto w-full">
+
+            <!-- Left Column: Controls and 3D Gem (Sticky Sidebar) -->
+            <aside class="lg:col-span-3 space-y-8 sticky top-8 self-start">
+                
+                <!-- Header and Status Panel -->
+                <div class="emg-card p-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <!-- Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gem"><path d="M6 3v12l6 6 6-6V3L12 9Z"/><path d="M12 9 6 3M12 9l6-6M12 9v12"/></svg>
+                        <h1 class="text-3xl font-extrabold text-white tracking-wider">EMG CORE</h1>
+                    </div>
+                    <p class="text-sm text-slate-400 border-b border-slate-700 pb-3 mb-4 font-mono">
+                        Multi-Perspective Analysis Engine.
+                    </p>
+                    
+                    <!-- 3D Gem Visualization -->
+                    <div id="gem-container" class="h-64 bg-slate-900 rounded-lg overflow-hidden mb-6 shadow-inner border border-slate-700">
+                        <canvas id="gem-canvas"></canvas>
+                    </div>
+
+                    <!-- Mode Status -->
+                    <div class="text-center mb-4 p-2 rounded-lg border border-slate-700 font-semibold text-sm">
+                        <span id="mode-status" class="text-cyan-400">STATUS: ANALYSIS MODE.</span>
+                    </div>
+
+                    <!-- Mode Control Area -->
+                    <div class="space-y-4">
+                         <!-- UPDATED PLACEHOLDER TEXT -->
+                         <textarea id="topic-input" class="w-full p-4 emg-input text-white resize-none" rows="3" placeholder="> TARGET ACQUISITION: Enter Topic for Deep Analysis (e.g., The Future of Quantum Computing)..."></textarea>
+                         <!-- UPDATED PLACEHOLDER TEXT -->
+                         <input type="password" id="api-key-input" class="w-full p-3 emg-input text-white text-sm" placeholder="> AUTHORIZATION KEY (Gemini API PAT)">
+                         
+                         <!-- Analysis Mode Buttons -->
+                         <div id="analysis-buttons" class="grid grid-cols-2 gap-4 pt-2">
+                            <!-- UPDATED BUTTON TEXT -->
+                            <button id="generate-btn" class="modern-btn bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 col-span-2">ENGAGE CORE ANALYSIS</button>
+                            <!-- UPDATED BUTTON TEXT -->
+                            <button id="start-chat-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium py-3 px-4 col-span-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>INIT CONTEXTUAL CHAT</button>
+                         </div>
+                         
+                         <!-- Chat Mode Buttons -->
+                         <div id="chat-buttons" class="grid grid-cols-2 gap-4 pt-2 hidden">
+                            <button id="send-btn" class="modern-btn bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4">TRANSMIT</button>
+                            <button id="exit-chat-btn" class="modern-btn bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 px-4">EXIT CHAT</button>
+                            <button id="clear-chat-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-3 px-4 col-span-2 text-sm">FLUSH HISTORY</button>
+                         </div>
+                         
+                         <div class="grid grid-cols-2 gap-4 mt-4">
+                             <button id="json-review-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 text-xs hidden">REVIEW RAW JSON</button>
+                             <button id="copy-all-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 text-xs hidden">EXPORT ALL DATA</button>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Memory Management Panel -->
+                <div class="emg-card p-6">
+                    <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-700 pb-2">:: GITHUB MEMORY CORE ::</h2>
+                    <p id="github-status" class="text-sm text-slate-400 mb-4 break-all font-mono">STATUS: OFFLINE</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="github-sync-btn" class="modern-btn bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed">SYNC MEMORY</button>
+                        <button id="github-settings-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 text-sm">EDIT CONFIG</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Column: Output -->
+            <section class="lg:col-span-7 space-y-8">
+                
+                <!-- Analysis Output (Default) -->
+                <div id="analysis-view">
+                    <!-- Perspectives Grid -->
+                    <div id="perspectives-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                    
+                    <!-- Synthesis and Graph -->
+                    <div id="synthesis-container" class="space-y-6 mt-6"></div>
+                </div>
+                
+                <!-- Chat Output (Hidden by Default) -->
+                <div id="chat-view" class="emg-card p-6 h-[70vh] lg:h-[80vh] overflow-y-auto hidden">
+                    <div class="text-xl font-bold border-b border-slate-700 pb-3 mb-4 text-white">
+                        EMG CONVERSATION LOG
+                    </div>
+                    <div id="chat-log" class="text-sm space-y-4">
+                        <!-- Chat messages injected here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center text-xs text-slate-500 py-6 mt-12">
+            Copyright Craig Huckerby 2025
+        </footer>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-slate-900/95 flex items-center justify-center z-50 transition-opacity">
+        <div class="text-center text-white">
+            <div class="w-16 h-16 border-4 border-t-cyan-400 border-r-cyan-400 border-b-slate-700 border-l-slate-700 rounded-full animate-spin mx-auto mb-6"></div>
+            <p id="loading-text" class="text-2xl font-bold text-cyan-400 tracking-widest">:: EXECUTE ::</p>
+        </div>
+    </div>
+
+    <!-- Generic Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-slate-800 max-w-2xl w-full p-8 relative rounded-xl shadow-2xl border border-slate-700">
+            <h2 id="modal-title" class="text-2xl font-bold mb-4 border-b border-slate-700 pb-2 text-white"></h2>
+            <div id="modal-message" class="text-slate-300 max-h-[60vh] overflow-y-auto text-sm"></div>
+            <button id="modal-close-btn" class="modern-btn bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 absolute top-4 right-4 text-sm transition">DISMISS</button>
+        </div>
+    </div>
+    
+    <!-- GitHub Config Modal (The "2nd Window" - Scroll fix applied here) -->
+    <!-- Added overflow-y-auto to the fixed container to allow scrolling on small screens -->
+    <div id="github-modal" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-slate-800 max-w-2xl w-full p-8 space-y-5 rounded-xl shadow-2xl border border-cyan-600/30">
+            <h2 class="text-2xl font-extrabold text-cyan-400 border-b border-slate-700 pb-2 tracking-wide">:: MEMORY CORE CONFIGURATION ::</h2>
+            
+            <!-- Added instructional text for clarity -->
+            <p class="text-sm text-slate-400">Configure GitHub for persistent storage and retrieval of analyses. A Personal Access Token (PAT) with **repo scope** is required.</p>
+            
+            <!-- This inner div is scrollable for content overflow, but the outer modal can now scroll too -->
+            <div class="space-y-5 max-h-[60vh] overflow-y-auto pr-4">
+                <div>
+                    <label for="github-user" class="block text-sm mb-2 font-semibold text-slate-300">GITHUB USERNAME</label>
+                    <input id="github-user" type="text" class="w-full p-3 emg-input text-white" placeholder="e.g., your-username">
+                </div>
+                <div>
+                    <label for="github-repo" class="block text-sm mb-2 font-semibold text-slate-300">GITHUB REPOSITORY</label>
+                    <input id="github-repo" type="text" class="w-full p-3 emg-input text-white" placeholder="e.g., emg-analysis-memory">
+                </div>
+                <div>
+                    <label for="github-path" class="block text-sm mb-2 font-semibold text-slate-300">TARGET FILE PATH</label>
+                    <input id="github-path" type="text" class="w-full p-3 emg-input text-white" placeholder="e.g., data/latest_analysis.json">
+                </div>
+                <div>
+                    <label for="github-token" class="block text-sm mb-2 font-semibold text-slate-300">PERSONAL ACCESS TOKEN (PAT)</label>
+                    <!-- NOTE: Leaving the input empty will keep the previously saved token -->
+                    <input id="github-token" type="password" class="w-full p-3 emg-input text-white" placeholder="Enter new PAT or leave blank to use stored token">
+                </div>
+            </div>
+
+            <div class="flex gap-4 pt-4 border-t border-slate-700 pt-5">
+                <button id="github-save-btn" class="modern-btn bg-cyan-600 hover:bg-cyan-500 text-white w-full py-3 transition font-bold">COMMIT CONFIG</button>
+                <button id="github-offline-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 w-full py-3 transition font-medium">DISCONNECT (OFFLINE)</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Constants and State ---
+        const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+        let currentMode = 'analysis'; // 'analysis' or 'chat'
+        // UPDATED initial chat history text
+        let chatHistory = [{ role: 'model', parts: [{ text: 'EMG Core Chat active. I retain context from the last analysis. Ask for clarification, deeper dives, or new queries.' }] }];
+        let generatedSynthesisData = null;
+        let lastAnalysisTopic = null;
+        
+        let githubMemoryCache = {
+            username: '',
+            repo: '',
+            path: '', // e.g., 'memory/emg.json'
+            token: '',
+            sha: null, // Used for updating file content
+            isConfigured: false,
+            isOnline: false,
+        };
+
+        const LOCAL_STORAGE_KEY = 'emg_core_config';
+        const GEM_ROTATION_SPEED = 0.005;
+
+        // --- DOM Elements Cache ---
+        const dom = {
+            // General
+            loadingOverlay: document.getElementById('loading-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            modal: document.getElementById('modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalMessage: document.getElementById('modal-message'),
+            modalCloseBtn: document.getElementById('modal-close-btn'),
+
+            // Left Sidebar Controls
+            topicInput: document.getElementById('topic-input'),
+            apiKeyInput: document.getElementById('api-key-input'),
+            modeStatus: document.getElementById('mode-status'),
+            
+            // Analysis Mode Buttons
+            analysisButtons: document.getElementById('analysis-buttons'),
+            generateBtn: document.getElementById('generate-btn'),
+            startChatBtn: document.getElementById('start-chat-btn'),
+            
+            // Chat Mode Elements
+            chatButtons: document.getElementById('chat-buttons'),
+            sendBtn: document.getElementById('send-btn'),
+            exitChatBtn: document.getElementById('exit-chat-btn'),
+            clearChatBtn: document.getElementById('clear-chat-btn'),
+            chatView: document.getElementById('chat-view'),
+            chatLog: document.getElementById('chat-log'),
+            
+            // Output Elements
+            analysisView: document.getElementById('analysis-view'),
+            perspectivesContainer: document.getElementById('perspectives-container'),
+            synthesisContainer: document.getElementById('synthesis-container'),
+            jsonReviewBtn: document.getElementById('json-review-btn'),
+            copyAllBtn: document.getElementById('copy-all-btn'),
+            
+            // GitHub Elements
+            githubModal: document.getElementById('github-modal'),
+            githubUser: document.getElementById('github-user'),
+            githubRepo: document.getElementById('github-repo'),
+            githubPath: document.getElementById('github-path'),
+            githubToken: document.getElementById('github-token'),
+            githubSaveBtn: document.getElementById('github-save-btn'),
+            githubOfflineBtn: document.getElementById('github-offline-btn'),
+            githubSettingsBtn: document.getElementById('github-settings-btn'),
+            githubSyncBtn: document.getElementById('github-sync-btn'),
+            githubStatus: document.getElementById('github-status'),
+
+            // 3D Elements
+            gemContainer: document.getElementById('gem-container'),
+            gemCanvas: document.getElementById('gem-canvas'),
+        };
+
+        // --- Utility Functions ---
+
+        /**
+         * Parses a JSON string, handling potential extra markdown wrapper.
+         * @param {string} jsonString The string possibly wrapped in ```json tags.
+         * @returns {object|null} The parsed JSON object or null on failure.
+         */
+        function safeParseJson(jsonString) {
+            try {
+                // Remove Markdown code block wrappers if they exist
+                const cleanedString = jsonString.replace(/```json\n?|```/g, '').trim();
+                return JSON.parse(cleanedString);
+            } catch (error) {
+                console.error("Failed to parse JSON:", error);
+                return null;
+            }
+        }
+
+        /**
+         * Displays a custom modal message instead of alert().
+         * @param {string} title - The modal title.
+         * @param {string} message - The modal message (supports HTML/Markdown).
+         */
+        function showModal(title, message) {
+            dom.modalTitle.textContent = title;
+            dom.modalMessage.innerHTML = message.replace(/\n/g, '<br>'); // Simple newline formatting
+            dom.modal.classList.remove('hidden');
+        }
+
+        /** Hides the generic modal. */
+        function hideModal() {
+            dom.modal.classList.add('hidden');
+        }
+
+        /** Shows the loading overlay. */
+        function showLoading(text = ':: ANALYZING ::') {
+            dom.loadingText.textContent = text;
+            dom.loadingOverlay.classList.remove('hidden');
+        }
+
+        /** Hides the loading overlay. */
+        function hideLoading() {
+            dom.loadingOverlay.classList.add('hidden');
+        }
+
+        /**
+         * Retries a promise function with exponential backoff.
+         * @param {Function} fn - The promise-returning function to execute.
+         * @param {number} retries - Maximum number of retries (default 3).
+         * @param {number} delay - Initial delay in milliseconds (default 1000).
+         * @returns {Promise<any>} The result of the successful function call.
+         */
+        async function withExponentialBackoff(fn, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    return await fn();
+                } catch (error) {
+                    if (i === retries - 1) throw error; // Re-throw on last attempt
+                    const waitTime = delay * Math.pow(2, i);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            }
+        }
+
+        // --- Core Gemini API Logic ---
+        
+        /**
+         * Calls the Gemini API for content generation with grounding.
+         * @param {Array<Object>} contents - The content array for the API request.
+         * @param {Object} generationConfig - Configuration for the response structure.
+         * @param {string} systemPrompt - System instruction for the model.
+         * @param {boolean} useSearch - Whether to use Google Search grounding.
+         * @returns {Promise<Object>} The parsed result object.
+         */
+        async function callGeminiApi({ contents, generationConfig = {}, systemPrompt, useSearch = true, model = "gemini-2.5-flash-preview-05-20" }) {
+            const apiKey = dom.apiKeyInput.value.trim();
+            if (!apiKey) {
+                throw new Error("API Key is required to run the analysis.");
+            }
+
+            const payload = {
+                contents: contents,
+                generationConfig: generationConfig,
+                systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+            };
+
+            if (useSearch) {
+                payload.tools = [{ "google_search": {} }];
+            }
+
+            // Ensure the URL uses the correct model
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const fetcher = async () => {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    console.error("API Error Response:", errorBody);
+                    throw new Error(`API request failed with status ${response.status}: ${errorBody.substring(0, 100)}...`);
+                }
+
+                return response.json();
+            };
+
+            return await withExponentialBackoff(fetcher);
+        }
+
+        /**
+         * Handles the main analysis workflow (Gemini structured output).
+         */
+        async function handleGenerate() {
+            const topic = dom.topicInput.value.trim();
+            if (!topic) {
+                showModal("Input Required", "Please enter a topic for the EMG Core Analysis.");
+                return;
+            }
+            if (!dom.apiKeyInput.value.trim()) {
+                 showModal("API Key Required", "Please enter your Gemini API Key to run the analysis.");
+                 return;
+            }
+
+            showLoading(":: ANALYZING: ACQUIRING DATA ::");
+            
+            // Clear previous results and disable controls
+            dom.perspectivesContainer.innerHTML = '';
+            dom.synthesisContainer.innerHTML = '';
+            dom.generateBtn.disabled = true;
+            dom.startChatBtn.disabled = true;
+            dom.jsonReviewBtn.classList.add('hidden');
+            dom.copyAllBtn.classList.add('hidden');
+            generatedSynthesisData = null;
+            lastAnalysisTopic = topic;
+
+            // SHARPENED SYSTEM PROMPT
+            const systemPrompt = `You are the EMG Core Analysis Engine. Your task is to perform a deep, multi-perspective analysis on the provided topic. Adhere strictly to the JSON schema. The analysis must cover four distinct perspectives: Technological/Innovation, Economic/Market, Societal/Ethical, and Geopolitical/Regulatory. For each, provide a professional executive summary (max 100 words) and identify the single most critical factor. Finally, synthesize these findings into a high-level summary and construct a valid Mermaid graph. Use Google Search grounding for accurate, up-to-date data.`;
+            
+            const userQuery = `Execute the EMG Core Analysis on the topic: "${topic}".`;
+
+            const analysisSchema = {
+                type: "OBJECT",
+                properties: {
+                    // SHARPENED ANALYSIS TITLE DESCRIPTION
+                    analysisTitle: { type: "STRING", description: "A precise, impactful title that reflects the core findings." },
+                    perspectives: {
+                        type: "ARRAY",
+                        description: "An array containing exactly four perspectives.",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                name: { type: "STRING", description: "The perspective name (e.g., Technological/Innovation, Economic/Market, Societal/Ethical, Geopolitical/Regulatory)." },
+                                // SHARPENED SUMMARY DESCRIPTION
+                                summary: { type: "STRING", description: "A professional, concise executive summary (max 100 words) detailing the current state and key tensions of this perspective." },
+                                criticalFactor: { type: "STRING", description: "The single most critical factor identified in this perspective." }
+                            },
+                            required: ["name", "summary", "criticalFactor"]
+                        },
+                        minItems: 4,
+                        maxItems: 4
+                    },
+                    // SHARPENED SYNTHESIS DESCRIPTION
+                    synthesis: { type: "STRING", description: "A high-level synthesis (max 150 words) that connects the four perspectives, identifies the overarching theme, and concludes with a definitive statement on the topic's future trajectory." },
+                    mermaidGraph: { type: "STRING", description: "A complete, valid Mermaid graph definition (code only, no text) illustrating the relationships between the four critical factors identified in the perspectives." }
+                },
+                required: ["analysisTitle", "perspectives", "synthesis", "mermaidGraph"]
+            };
+
+            try {
+                const result = await callGeminiApi({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: analysisSchema
+                    },
+                    systemPrompt: systemPrompt,
+                    useSearch: true
+                });
+                
+                showLoading(":: DECODING: RENDERING CORE OUTPUT ::");
+
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const analysisData = safeParseJson(jsonText);
+                
+                if (!analysisData) {
+                    throw new Error("Model response was not valid JSON or was empty.");
+                }
+
+                generatedSynthesisData = analysisData;
+                renderAnalysis(analysisData);
+                dom.generateBtn.disabled = false;
+                dom.startChatBtn.disabled = false;
+                dom.jsonReviewBtn.classList.remove('hidden');
+                dom.copyAllBtn.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error("Analysis Failed:", error);
+                showModal("EMG Core Error", `Analysis failed. Please check your API key, topic, and network connection. Details: ${error.message}`);
+                dom.generateBtn.disabled = false;
+                dom.startChatBtn.disabled = false;
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // --- Chat Mode Logic ---
+
+        /** Initializes the application into chat mode. */
+        function initChatMode() {
+            if (!lastAnalysisTopic) {
+                 showModal("Analysis Required", "Please execute an analysis first before starting the Contextual Chat. The chat will focus on the last analyzed topic.");
+                 return;
+            }
+            if (!dom.apiKeyInput.value.trim()) {
+                 showModal("API Key Required", "Please enter your Gemini API Key to use the chat functionality.");
+                 return;
+            }
+            currentMode = 'chat';
+            dom.analysisView.classList.add('hidden');
+            dom.chatView.classList.remove('hidden');
+            dom.analysisButtons.classList.add('hidden');
+            dom.chatButtons.classList.remove('hidden');
+            // UPDATED CHAT PLACEHOLDER TEXT
+            dom.topicInput.placeholder = `> TRANSMIT QUERY (Target: ${lastAnalysisTopic.substring(0, 20)}...)...`;
+            // UPDATED CHAT STATUS TEXT
+            dom.modeStatus.textContent = `STATUS: CONTEXTUAL CHAT ACTIVATED (Target: ${lastAnalysisTopic.substring(0, 20)}...)`;
+            dom.topicInput.value = ''; // Clear input for messaging
+            dom.topicInput.rows = 2;
+            renderChatHistory();
+        }
+
+        /** Exits the application from chat mode back to analysis mode. */
+        function exitChatMode() {
+            currentMode = 'analysis';
+            dom.analysisView.classList.remove('hidden');
+            dom.chatView.classList.add('hidden');
+            dom.analysisButtons.classList.remove('hidden');
+            dom.chatButtons.classList.add('hidden');
+            // UPDATED ANALYSIS PLACEHOLDER TEXT
+            dom.topicInput.placeholder = "> TARGET ACQUISITION: Enter Topic for Deep Analysis (e.g., The Future of Quantum Computing)...";
+            dom.modeStatus.textContent = "STATUS: ANALYSIS MODE.";
+            dom.topicInput.rows = 3;
+            dom.topicInput.value = lastAnalysisTopic || ''; // Restore analysis topic if available
+        }
+        
+        /** Renders the current chat history to the UI. */
+        function renderChatHistory() {
+            dom.chatLog.innerHTML = '';
+            chatHistory.forEach(msg => {
+                // Determine styling based on role
+                const isUser = msg.role === 'user';
+                const containerClasses = isUser ? 
+                    'flex justify-end' : 
+                    'flex justify-start';
+                const messageClasses = isUser ? 
+                    'bg-cyan-700 text-white p-4 rounded-xl rounded-br-none max-w-lg' : 
+                    'bg-slate-700 text-slate-200 p-4 rounded-xl rounded-tl-none max-w-lg';
+                const roleText = isUser ? 'USER' : 'EMG CORE';
+
+                const chatItem = document.createElement('div');
+                chatItem.className = containerClasses;
+                chatItem.innerHTML = `
+                    <div class="${messageClasses}">
+                        <p class="font-bold text-xs mb-1 opacity-80">${roleText}</p>
+                        <p>${msg.parts[0].text.replace(/\n/g, '<br>')}</p>
+                    </div>
+                `;
+                dom.chatLog.appendChild(chatItem);
+            });
+            dom.chatLog.scrollTop = dom.chatLog.scrollHeight; // Scroll to bottom
+        }
+
+        /** Handles sending a user message and getting an AI response. */
+        async function handleAiChat() {
+            const userMessage = dom.topicInput.value.trim();
+            if (!userMessage) return;
+
+            dom.topicInput.value = ''; // Clear input field
+            dom.sendBtn.disabled = true;
+
+            // 1. Add user message to history and render
+            chatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+            renderChatHistory();
+
+            showLoading(":: CHAT: CORE RESPONSE PENDING ::");
+
+            try {
+                const systemPrompt = `You are the EMG Chat Assistant, specializing in deep context derived from the last analysis performed on the topic: "${lastAnalysisTopic}". Answer the user's question concisely, using the persona of a knowledgeable, technical analyst. Maintain the conversation flow. Do NOT use search grounding.`;
+
+                const result = await callGeminiApi({
+                    contents: chatHistory,
+                    systemPrompt: systemPrompt,
+                    useSearch: false // Chat mode does not use grounding
+                });
+
+                const modelResponseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Error: Model did not provide a valid response.";
+                
+                // 2. Add model response to history and render
+                chatHistory.push({ role: 'model', parts: [{ text: modelResponseText }] });
+                renderChatHistory();
+
+            } catch (error) {
+                console.error("Chat Failed:", error);
+                // 3. Add error message to chat log (as model)
+                chatHistory.push({ role: 'model', parts: [{ text: `Error: Failed to connect to core. ${error.message}` }] });
+                renderChatHistory();
+                showModal("EMG Chat Error", `Chat request failed. Details: ${error.message}`);
+            } finally {
+                hideLoading();
+                dom.sendBtn.disabled = false;
+            }
+        }
+
+
+        // --- Rendering Functions ---
+
+        /**
+         * Renders the analysis data into the perspective cards and synthesis area.
+         * @param {Object} data - The parsed analysis data.
+         */
+        function renderAnalysis(data) {
+            // 1. Render Perspectives
+            dom.perspectivesContainer.innerHTML = '';
+            
+            data.perspectives.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'emg-card p-6 space-y-4';
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold text-cyan-400 border-b border-slate-700 pb-2">${p.name.toUpperCase()}</h3>
+                    <p class="text-slate-300 text-sm">${p.summary}</p>
+                    <div class="p-3 bg-slate-700 rounded-lg border border-cyan-700">
+                        <p class="text-xs font-mono text-cyan-400 mb-1">CRITICAL FACTOR:</p>
+                        <p class="font-semibold text-white">${p.criticalFactor}</p>
+                    </div>
+                `;
+                dom.perspectivesContainer.appendChild(card);
+            });
+
+            // 2. Render Synthesis and Graph
+            dom.synthesisContainer.innerHTML = `
+                <!-- Synthesis Card -->
+                <div class="emg-card p-8 mt-6">
+                    <h2 class="text-2xl font-extrabold text-white mb-4">${data.analysisTitle}</h2>
+                    <p class="text-md text-slate-300 border-t border-slate-700 pt-4">${data.synthesis}</p>
+                </div>
+                
+                <!-- Mermaid Graph Card -->
+                <div class="emg-card p-8 mt-6">
+                    <h2 class="text-2xl font-bold text-white mb-4 border-b border-slate-700 pb-2">:: FACTOR RELATIONSHIP MAP ::</h2>
+                    <div id="mermaid-graph" class="mermaid-container p-4">
+                        <pre class="mermaid">${data.mermaidGraph}</pre>
+                    </div>
+                </div>
+            `;
+            
+            // Re-render the Mermaid graph
+            mermaid.init(undefined, "#mermaid-graph");
+        }
+
+        // --- Data Persistence (GitHub & LocalStorage) ---
+
+        /** Loads GitHub configuration from localStorage. */
+        function loadGithubConfig() {
+            try {
+                const configString = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (configString) {
+                    const savedConfig = JSON.parse(configString);
+                    Object.assign(githubMemoryCache, savedConfig);
+                    
+                    // Update UI inputs
+                    dom.githubUser.value = githubMemoryCache.username;
+                    dom.githubRepo.value = githubMemoryCache.repo;
+                    dom.githubPath.value = githubMemoryCache.path;
+                    // Token is not loaded into the input for security
+                    
+                    if (githubMemoryCache.isConfigured) {
+                        dom.githubStatus.textContent = `CONFIGURED: ${githubMemoryCache.username}/${githubMemoryCache.repo}`;
+                        dom.githubSyncBtn.disabled = false;
+                    } else {
+                        dom.githubStatus.textContent = 'STATUS: OFFLINE';
+                        dom.githubSyncBtn.disabled = true;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load config from storage:", e);
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+            }
+        }
+
+        /** Saves GitHub configuration to localStorage and updates cache. */
+        function saveGithubConfig() {
+            githubMemoryCache.username = dom.githubUser.value.trim();
+            githubMemoryCache.repo = dom.githubRepo.value.trim();
+            githubMemoryCache.path = dom.githubPath.value.trim();
+            // Only update token if a value is entered
+            if (dom.githubToken.value.trim()) {
+                githubMemoryCache.token = dom.githubToken.value.trim();
+            }
+
+            if (githubMemoryCache.username && githubMemoryCache.repo && githubMemoryCache.path && githubMemoryCache.token) {
+                githubMemoryCache.isConfigured = true;
+                githubMemoryCache.isOnline = true; // Assume online until fetch fails
+                dom.githubStatus.textContent = `CONFIGURED: ${githubMemoryCache.username}/${githubMemoryCache.repo}`;
+                dom.githubSyncBtn.disabled = false;
+                hideGithubModal();
+                saveLocalConfig();
+                // Attempt to load existing file to get initial SHA
+                syncMemory(false, true); 
+                showModal("Configuration Saved", "GitHub settings committed. Attempting to initialize memory connection...");
+            } else {
+                githubMemoryCache.isConfigured = false;
+                showModal("Configuration Incomplete", "Please fill in all four required fields (User, Repo, Path, Token).");
+            }
+        }
+        
+        /** Saves the current config state to localStorage. */
+        function saveLocalConfig() {
+             // Do not save the token back to the input field, but save it to storage
+             const configToSave = { ...githubMemoryCache };
+             configToSave.token = githubMemoryCache.token;
+             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(configToSave));
+        }
+
+        /** Sets the application to operate in offline mode. */
+        function setOfflineMode() {
+            githubMemoryCache.isConfigured = false;
+            githubMemoryCache.isOnline = false;
+            dom.githubStatus.textContent = 'STATUS: OFFLINE';
+            dom.githubSyncBtn.disabled = true;
+            hideGithubModal();
+            saveLocalConfig();
+            showModal("Offline Mode Active", "Memory Core is set to OFFLINE. Analysis results will not be saved.");
+        }
+        
+        /** Clears the UI and initiates a sync (pull/push). */
+        function clearUIForSync() {
+             if (generatedSynthesisData) {
+                 syncMemory(true); // Attempt to push the current data
+             } else {
+                 syncMemory(false); // Only pull
+             }
+        }
+
+        // --- GitHub API Logic ---
+        
+        /**
+         * Fetches or pushes memory data from/to GitHub.
+         * @param {boolean} shouldPush - If true, push generatedSynthesisData. If false, pull.
+         * @param {boolean} silent - If true, do not show modals on success/failure.
+         */
+        async function syncMemory(shouldPush = false, silent = false) {
+            if (!githubMemoryCache.isConfigured) {
+                if (!silent) showModal("GitHub Error", "Memory Core is not configured. Please enter your settings.");
+                return;
+            }
+
+            const { username, repo, path, token, sha } = githubMemoryCache;
+            const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+
+            try {
+                if (!shouldPush) {
+                    // --- PULL (GET) Operation ---
+                    showLoading(":: SYNC: FETCHING MEMORY ::");
+                    
+                    const response = await withExponentialBackoff(async () => {
+                         return await fetch(apiUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Accept': 'application/vnd.github.v3.json',
+                            }
+                        });
+                    });
+
+                    if (response.status === 404) {
+                        githubMemoryCache.sha = null; // File doesn't exist yet
+                        dom.githubStatus.textContent = `CONFIGURED: FILE NOT FOUND`;
+                        if (!silent) showModal("Sync Info", "Memory file does not exist on GitHub. Ready to create on next save.");
+                        return;
+                    }
+                    if (!response.ok) {
+                        throw new Error(`GitHub GET failed with status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    githubMemoryCache.sha = data.sha;
+                    const content = atob(data.content);
+                    const parsedData = safeParseJson(content);
+                    
+                    if (parsedData && parsedData.lastAnalysisTopic && parsedData.analysisData) {
+                        generatedSynthesisData = parsedData.analysisData;
+                        lastAnalysisTopic = parsedData.lastAnalysisTopic;
+                        dom.topicInput.value = lastAnalysisTopic;
+                        renderAnalysis(generatedSynthesisData);
+                        dom.generateBtn.disabled = false;
+                        dom.startChatBtn.disabled = false;
+                        dom.jsonReviewBtn.classList.remove('hidden');
+                        dom.copyAllBtn.classList.remove('hidden');
+                        dom.githubStatus.textContent = `CONFIGURED: SYNCED (Pulled)`;
+                        if (!silent) showModal("Sync Complete", `Successfully loaded analysis for: ${lastAnalysisTopic}`);
+                    } else {
+                         dom.githubStatus.textContent = `CONFIGURED: PULL FAILED (Empty/Bad Data)`;
+                         if (!silent) showModal("Sync Warning", "File found, but content was unreadable or empty. Ready to overwrite on next save.");
+                    }
+                    
+                } else {
+                    // --- PUSH (PUT) Operation ---
+                    if (!generatedSynthesisData) {
+                        if (!silent) showModal("Push Failed", "No current analysis data to save. Please run an analysis first.");
+                        return;
+                    }
+                    showLoading(":: SYNC: PUSHING MEMORY ::");
+                    
+                    const fileContent = JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        lastAnalysisTopic: lastAnalysisTopic,
+                        analysisData: generatedSynthesisData
+                    }, null, 2);
+                    
+                    const pushPayload = {
+                        message: `EMG Core Analysis: Save ${lastAnalysisTopic}`,
+                        content: btoa(fileContent),
+                        sha: githubMemoryCache.sha // Only include SHA if updating an existing file
+                    };
+
+                    const response = await withExponentialBackoff(async () => {
+                        return await fetch(apiUrl, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/vnd.github.v3.json',
+                            },
+                            body: JSON.stringify(pushPayload)
+                        });
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`GitHub PUT failed with status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    githubMemoryCache.sha = data.content.sha; // Update SHA for next push
+                    dom.githubStatus.textContent = `CONFIGURED: SYNCED (Pushed)`;
+                    if (!silent) showModal("Save Complete", `Successfully saved current analysis for: ${lastAnalysisTopic}`);
+                }
+            } catch (error) {
+                console.error("GitHub Sync Error:", error);
+                dom.githubStatus.textContent = 'CONFIGURED: SYNC FAILED';
+                if (!silent) showModal("GitHub Sync Error", `Could not connect to or update GitHub: ${error.message}. Check your PAT or repository name.`);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // --- Event Handlers for UI Operations ---
+
+        /** Shows the GitHub configuration modal. */
+        function showGithubModal() {
+            dom.githubModal.classList.remove('hidden');
+        }
+
+        /** Hides the GitHub configuration modal. */
+        function hideGithubModal() {
+            dom.githubModal.classList.add('hidden');
+        }
+
+        /** Handles displaying the raw JSON data in a modal. */
+        function handleJsonReview() {
+            if (!generatedSynthesisData) {
+                showModal("No Data", "Please run an analysis first.");
+                return;
+            }
+            const jsonString = JSON.stringify(generatedSynthesisData, null, 2);
+            const formattedHtml = `<pre class="text-sm p-4 bg-slate-900 rounded-lg overflow-x-auto">${jsonString}</pre>`;
+            showModal("RAW JSON STACK", formattedHtml);
+        }
+
+        /** Handles copying all generated text data (perspectives + synthesis) to clipboard. */
+        function handleCopyAll() {
+             if (!generatedSynthesisData) {
+                showModal("No Data", "Please run an analysis first.");
+                return;
+            }
+
+            let textOutput = `--- EMG CORE ANALYSIS: ${generatedSynthesisData.analysisTitle} ---\n\n`;
+            
+            // 1. Perspectives
+            generatedSynthesisData.perspectives.forEach(p => {
+                textOutput += `[${p.name.toUpperCase()}]\n`;
+                textOutput += `SUMMARY: ${p.summary}\n`;
+                textOutput += `CRITICAL FACTOR: ${p.criticalFactor}\n\n`;
+            });
+
+            // 2. Synthesis
+            textOutput += `---\n\n`;
+            textOutput += `SYNTHESIS:\n${generatedSynthesisData.synthesis}\n\n`;
+
+            // 3. Graph Code
+            textOutput += `---\n\n`;
+            textOutput += `MERMAID GRAPH CODE:\n${generatedSynthesisData.mermaidGraph}\n`;
+
+            // Use document.execCommand('copy') for better compatibility in iframe
+            const textarea = document.createElement('textarea');
+            textarea.value = textOutput;
+            textarea.style.position = 'fixed'; // Prevents scrolling to the bottom
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showModal("Copy Complete", "Analysis data copied to clipboard.");
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showModal("Copy Failed", "Could not automatically copy to clipboard. Please copy the text from the JSON Review modal.");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // --- 3D Visualization Logic (Three.js) ---
+        let scene, camera, renderer, gem;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        function initThreeJS() {
+            const width = dom.gemContainer.clientWidth;
+            const height = dom.gemContainer.clientHeight;
+            
+            // Scene Setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: dom.gemCanvas, antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            
+            // Gem Geometry (A complex Icosahedron)
+            const geometry = new THREE.IcosahedronGeometry(2, 0); // Size 2
+            
+            // Material - Shimmering/Glass effect
+            const material = new THREE.MeshPhysicalMaterial({
+                color: 0x22d3ee, // Cyan color
+                metalness: 0.8,
+                roughness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1,
+                ior: 1.5, // Index of refraction
+                reflectivity: 0.9,
+                transparent: true,
+                opacity: 0.7,
+            });
+            
+            gem = new THREE.Mesh(geometry, material);
+            scene.add(gem);
+            
+            camera.position.z = 4;
+            
+            // Lighting
+            // Ambient light (soft white)
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5)); 
+            
+            // Directional Light 1 (Cyan/Blue)
+            const directionalLight1 = new THREE.DirectionalLight(0x22d3ee, 1.5);
+            directionalLight1.position.set(5, 5, 5);
+            scene.add(directionalLight1);
+
+            // Directional Light 2 (Purple/Pink for contrast)
+            const directionalLight2 = new THREE.DirectionalLight(0xa855f7, 1.0);
+            directionalLight2.position.set(-5, -5, -5);
+            scene.add(directionalLight2);
+
+            // Handle resizing
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Mouse Interaction for rotation
+            function onMouseDown(e) {
+                isDragging = true;
+                previousMousePosition.x = e.clientX;
+                previousMousePosition.y = e.clientY;
+            }
+
+            function onMouseMove(e) {
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                // Adjust rotation based on mouse movement
+                // Increase the divisor to slow down rotation
+                gem.rotation.y += deltaX * 0.005; 
+                gem.rotation.x += deltaY * 0.005;
+
+                previousMousePosition.x = e.clientX;
+                previousMousePosition.y = e.clientY;
+            }
+
+            function onMouseUp() {
+                isDragging = false;
+            }
+            
+            // Add listeners to the canvas
+            dom.gemCanvas.addEventListener('mousedown', onMouseDown);
+            dom.gemCanvas.addEventListener('mousemove', onMouseMove);
+            dom.gemCanvas.addEventListener('mouseup', onMouseUp);
+            dom.gemCanvas.addEventListener('mouseleave', onMouseUp); // Stop dragging if mouse leaves
+
+            // Add touch listeners for mobile
+            function onTouchStart(e) {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition.x = e.touches[0].clientX;
+                    previousMousePosition.y = e.touches[0].clientY;
+                }
+            }
+
+            function onTouchMove(e) {
+                if (!isDragging || e.touches.length !== 1) return;
+                e.preventDefault(); // Prevent scrolling while dragging
+
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                gem.rotation.y += deltaX * 0.005;
+                gem.rotation.x += deltaY * 0.005;
+
+                previousMousePosition.x = e.touches[0].clientX;
+                previousMousePosition.y = e.touches[0].clientY;
+            }
+
+            function onTouchEnd() {
+                isDragging = false;
+            }
+
+            dom.gemCanvas.addEventListener('touchstart', onTouchStart);
+            dom.gemCanvas.addEventListener('touchmove', onTouchMove);
+            dom.gemCanvas.addEventListener('touchend', onTouchEnd);
+        }
+
+        function onWindowResize() {
+            const width = dom.gemContainer.clientWidth;
+            const height = dom.gemContainer.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Continuous slow rotation if not dragging
+            if (gem && !isDragging) {
+                gem.rotation.x += GEM_ROTATION_SPEED;
+                gem.rotation.y += GEM_ROTATION_SPEED * 0.5;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // --- Initialization ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load configuration on startup
+            loadGithubConfig();
+            
+            // Initialize 3D visualization
+            initThreeJS();
+            animate();
+
+            // Modal listeners
+            dom.modalCloseBtn.addEventListener('click', hideModal);
+            
+            // Analysis listeners
+            dom.generateBtn.addEventListener('click', handleGenerate);
+            dom.jsonReviewBtn.addEventListener('click', handleJsonReview);
+            dom.copyAllBtn.addEventListener('click', handleCopyAll);
+            
+            // GitHub listeners
+            dom.githubSaveBtn.addEventListener('click', saveGithubConfig);
+            dom.githubOfflineBtn.addEventListener('click', setOfflineMode);
+            dom.githubSettingsBtn.addEventListener('click', showGithubModal);
+            dom.githubSyncBtn.addEventListener('click', clearUIForSync);
+
+            // Chat listeners
+            dom.startChatBtn.addEventListener('click', initChatMode);
+            dom.exitChatBtn.addEventListener('click', exitChatMode);
+            dom.sendBtn.addEventListener('click', handleAiChat);
+            dom.clearChatBtn.addEventListener('click', () => { 
+                chatHistory = [{ role: 'model', parts: [{ text: 'EMG Chat memory flushed. New conversation started.' }] }];
+                renderChatHistory();
+            });
+
+            // Input enter key listener for both modes
+            dom.topicInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { // Allow shift+enter for new lines in textarea
+                    e.preventDefault();
+                    if (currentMode === 'chat' && !dom.sendBtn.disabled) {
+                        handleAiChat();
+                    } else if (currentMode === 'analysis' && !dom.generateBtn.disabled) {
+                        handleGenerate();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
