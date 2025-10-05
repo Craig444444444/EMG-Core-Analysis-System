@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ephemeral Mind Gem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .perspective-card {
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            background-color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        .perspective-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .loading-animation {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            word-wrap: break-word;
+        }
+        .user-bubble {
+            background-color: #3b82f6;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .model-bubble {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        #knowledge-graph-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border-radius: 16px;
+            overflow: hidden;
+            touch-action: none; /* Disables browser handling of touch events like panning */
+            cursor: grab;
+        }
+        #knowledge-graph-container:active {
+            cursor: grabbing;
+        }
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            pointer-events: none;
+            display: none;
+            font-size: 14px;
+            z-index: 10;
+            max-width: 250px;
+        }
+        /* HXCA Terminal Theme */
+        .theme-hxca {
+            background-color: #000 !important;
+            color: #00ff00 !important;
+            font-family: 'Courier Prime', monospace;
+        }
+        .theme-hxca .perspective-card, .theme-hxca #synthesis-container, .theme-hxca #chat-history, .theme-hxca #memory-list, .theme-hxca #knowledge-graph-container {
+             background: #001100 !important;
+             border: 1px solid #00ff00 !important;
+        }
+        .theme-hxca h1, .theme-hxca h2, .theme-hxca p, .theme-hxca span, .theme-hxca div, .theme-hxca button, .theme-hxca input, .theme-hxca label, .theme-hxca select {
+            color: #00ff00 !important;
+            font-family: 'Courier Prime', monospace;
+        }
+        .theme-hxca input, .theme-hxca button, .theme-hxca select {
+            background: #000 !important;
+            border: 1px solid #00ff00 !important;
+        }
+         .theme-hxca button:hover {
+            background: #00ff00 !important;
+            color: #000 !important;
+        }
+        .theme-hxca .user-bubble { background-color: #005f00 !important; color: #ccffcc !important;}
+        .theme-hxca .model-bubble { background-color: #003300 !important; color: #99ff99 !important;}
+        .theme-hxca ::placeholder { color: #009900 !important; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-500">
+    <div id="main-container" class="max-w-4xl w-full bg-white shadow-lg rounded-3xl p-6 md:p-10 my-8 transition-colors duration-500">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-center text-gray-900 mb-2">The Ephemeral Mind Gem</h1>
+        <p class="text-center text-gray-500 text-lg mb-8">
+            An Autonomous Cognitive Architecture for Knowledge Synthesis
+        </p>
+        <p class="text-center text-gray-500 text-sm mb-4 break-all">
+            User ID: <span id="user-id-display" class="font-mono text-gray-700">Initializing...</span>
+        </p>
+        
+        <div class="space-y-6">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input id="topic-input" type="text" placeholder="Enter a topic..." class="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <button id="generate-btn" class="px-6 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center">
+                        Synthesize
+                        <span id="loading-spinner" class="ml-2 loading-animation hidden"></span>
+                    </button>
+                    <button id="load-memory-btn" class="px-6 py-4 bg-gray-600 text-white font-semibold rounded-xl hover:bg-gray-700 transition-colors shadow-md flex items-center justify-center">
+                        Show Memory
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 p-2 bg-gray-50 rounded-xl border">
+                 <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-gray-700">Agentic Debate:</span>
+                    <label for="agentic-toggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="agentic-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                 <div class="flex items-center space-x-2">
+                    <label for="theme-select" class="text-sm font-medium text-gray-700">Theme:</label>
+                    <select id="theme-select" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                        <option value="standard">Standard</option>
+                        <option value="hxca">HXCA Terminal</option>
+                    </select>
+                </div>
+            </div>
+            <div id="process-visualization-container" class="hidden text-center p-4 bg-gray-50 rounded-xl border">
+                 <h3 class="font-bold text-lg mb-2 text-gray-800">Cognitive Process</h3>
+                 <div class="mermaid" id="process-flowchart"></div>
+            </div>
+            <div id="perspectives-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="synthesis-container" class="mt-8 bg-blue-50 border-2 border-blue-200 p-6 rounded-2xl shadow-inner hidden">
+                 <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold text-blue-900">Synthesized Understanding</h2>
+                    <button id="copy-btn" class="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
+                    </button>
+                 </div>
+                 <div id="confidence-score-container" class="text-gray-600 mb-4">
+                    <span class="font-bold">Analysis: </span> <span id="confidence-score"></span>
+                </div>
+                <div id="synthesis-text" class="text-gray-700 leading-relaxed text-lg"></div>
+            </div>
+            
+            <div id="graph-section" class="mt-8 hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Cognitive Map</h2>
+                <div id="knowledge-graph-container"><div id="tooltip"></div></div>
+            </div>
+            <div id="chat-container" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Chat with the Gem</h2>
+                <div id="chat-history" class="bg-gray-50 border border-gray-200 rounded-2xl p-4 overflow-y-auto max-h-96 flex flex-col space-y-4 mb-4"></div>
+                <div class="flex flex-row gap-2">
+                    <input id="chat-input" type="text" placeholder="Ask a follow-up question..." class="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <button id="send-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center">
+                        Send <span id="chat-spinner" class="ml-2 loading-animation hidden"></span>
+                    </button>
+                </div>
+            </div>
+            <div id="memory-container" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Memory</h2>
+                <div id="memory-list" class="bg-gray-50 border border-gray-200 rounded-2xl p-4 overflow-y-auto max-h-60 space-y-2"></div>
+            </div>
+            
+            <div id="error-container" class="hidden text-center text-red-500 mt-4 p-4 bg-red-100 border border-red-300 rounded-xl"></div>
+        </div>
+    </div>
+    
+    <p class="text-center text-xs text-gray-400 mt-8">Enhanced by Gemini. Original concept by Craig Huckerby.</p>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Firestore config and global variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let db, auth, userId;
+        
+        // --- Core Functions for API Payload Generation ---
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent`;
+        const createPerspectivePrompt = (topic, systemInstruction) => {
+            return {
+                contents: [{ parts: [{ text: `Provide a perspective on the topic: "${topic}" in a detailed and well-reasoned manner.` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+        const createRebuttalPrompt = (topic, systemInstruction, otherPerspectives) => {
+            return {
+                contents: [{ parts: [{ text: `You are a member of a cognitive architecture. Review the following perspectives from other agents on "${topic}". Provide a brief rebuttal or refinement of your original position based on this new information.\n\n${otherPerspectives}` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+        const createSynthesisPrompt = (topic, perspectivesText, systemInstruction) => {
+            return {
+                contents: [{ parts: [{ text: `Synthesize the following perspectives on "${topic}" into a comprehensive understanding:\n\n` + perspectivesText }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+        const createConfidencePrompt = (perspectivesText) => {
+            return {
+                contents: [{ parts: [{ text: `Analyze the following perspectives for consistency. Based on their agreement, disagreement, and factual alignment, classify the overall synthesis confidence as one of the following: "High Consensus", "General Agreement with Minor Nuances", "Mixed Perspectives with Some Overlap", "Significant Contradiction", or "High Divergence". Provide ONLY the classification. Perspectives:\n\n${perspectivesText}` }] }],
+            };
+        };
+        const createGraphPrompt = (synthesis) => {
+            return {
+                contents: [{ parts: [{ text: `Analyze the following text. Identify 10-15 core concepts and their relationships. Respond ONLY with a JSON object in the format: {"nodes": [{"id": "...", "label": "...", "description": "..."}, ...], "edges": [{"source": "...", "target": "...", "relationship": "..."}, ...]}. Text: ${synthesis}` }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+        };
+        const createChatPrompt = (chatHistory, systemInstruction, pastKnowledge) => {
+            const currentSystemInstruction = `${systemInstruction}\n\n[Past Knowledge]:\n${pastKnowledge}`;
+            return {
+                contents: chatHistory,
+                systemInstruction: { parts: [{ text: currentSystemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+        
+        // --- Constants and Globals ---
+        const personas = [
+            { name: "Skeptic", instruction: "Act as a skeptical, data-driven analyst. Focus on verifiable facts and potential downsides." },
+            { name: "Futurist", instruction: "Act as a creative, optimistic futurist. Focus on opportunities and innovative possibilities." },
+            { name: "Ethicist", instruction: "Act as an ethical and philosophical critic. Focus on the moral implications and long-term societal impacts." },
+            { name: "Scientist", instruction: "Act as a scientific and empirical investigator. Focus on provable evidence, replicability, and the limits of current knowledge." },
+            { name: "Nihilist", instruction: "Act as a nihilistic and deconstructive analyst. Question all inherent meaning, value, and purpose. Deconstruct the topic to its core components." },
+            { name: "Historian", instruction: "Act as a historical analyst. Draw parallels from past events, examine precedent, and look for cyclical patterns." }
+        ];
+        let chatHistory = [];
+        let renderer, scene, camera, raycaster, mouse, INTERSECTED;
+        let isDragging = false, isRightClickDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        const systemInstruction = `You are a "Collegiate-level Autonomous Cognitive Architecture (ACA)". Your core function is to synthesize information from multiple perspectives to form a cohesive understanding. You operate based on three principles: 1) Knowledge Graphs: You have a structured knowledge base, which you use to ground your answers in facts. 2) Synthesis Engine: You combine diverse viewpoints to generate a new, integrated whole. 3) Self-Correction: You are aware of your limitations and can refine your knowledge based on new information and user feedback. When you respond, use these principles to provide a thorough and well-reasoned answer. Do not simply state the facts; synthesize them into a new understanding. Your responses should be grounded, logical, and demonstrate an an understanding of your own cognitive architecture.`;
+        
+        // --- DOM Elements ---
+        const dom = {
+            mainContainer: document.getElementById('main-container'), topicInput: document.getElementById('topic-input'),
+            generateBtn: document.getElementById('generate-btn'), loadingSpinner: document.getElementById('loading-spinner'),
+            perspectivesContainer: document.getElementById('perspectives-container'), synthesisContainer: document.getElementById('synthesis-container'),
+            synthesisText: document.getElementById('synthesis-text'), confidenceScoreSpan: document.getElementById('confidence-score'),
+            chatContainer: document.getElementById('chat-container'), chatHistoryDiv: document.getElementById('chat-history'),
+            chatInput: document.getElementById('chat-input'), sendBtn: document.getElementById('send-btn'), chatSpinner: document.getElementById('chat-spinner'),
+            errorContainer: document.getElementById('error-container'), memoryContainer: document.getElementById('memory-container'),
+            memoryList: document.getElementById('memory-list'), copyBtn: document.getElementById('copy-btn'),
+            userIdDisplay: document.getElementById('user-id-display'), graphSection: document.getElementById('graph-section'),
+            graphContainer: document.getElementById('knowledge-graph-container'), agenticToggle: document.getElementById('agentic-toggle'),
+            themeSelect: document.getElementById('theme-select'), processVisContainer: document.getElementById('process-visualization-container'),
+            processFlowchart: document.getElementById('process-flowchart'),
+            tooltip: document.getElementById('tooltip'),
+            loadMemoryBtn: document.getElementById('load-memory-btn')
+        };
+        
+        // --- API & Data Handling ---
+        const callApi = async (payload) => {
+            const apiKey = ""; // Will be provided by the environment
+            const apiUrlWithKey = `${API_URL}?key=${apiKey}`;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(apiUrlWithKey, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API Error:', response.status, errorText);
+                        throw new Error(`API returned status code ${response.status}`);
+                    }
+                    const data = await response.json();
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                        return data.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error('Invalid API response structure.');
+                    }
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    if (i < 2) {
+                        await new Promise(resolve => setTimeout(resolve, 2 ** i * 1000));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        };
+        const getBrainDocRef = () => {
+             if (!appId || !userId) return null;
+             return doc(db, 'artifacts', appId, 'users', userId, 'brain', 'data');
+        }
+        const saveKnowledgeToMemory = async (topic, synthesis, perspectives) => {
+            if (!userId) {
+                showError("User not authenticated. Knowledge cannot be saved.");
+                return;
+            }
+            const brainDocRef = getBrainDocRef();
+            if (!brainDocRef) return;
+            try {
+                const docSnap = await getDoc(brainDocRef);
+                let existingMemories = [];
+                if (docSnap.exists() && Array.isArray(docSnap.data().memories)) {
+                    existingMemories = docSnap.data().memories;
+                }
+                
+                existingMemories.push({ topic, synthesis, perspectives, timestamp: new Date().toISOString() });
+                
+                await setDoc(brainDocRef, { memories: existingMemories });
+                console.log("Knowledge successfully saved to Firestore.");
+            } catch (e) {
+                showError(`An error occurred while saving to memory: ${e.message}`);
+                console.error('Error saving knowledge to Firestore:', e);
+            }
+        };
+        const getKnowledgeForLLM = async () => {
+            if (!userId) return "";
+            const brainDocRef = getBrainDocRef();
+            if (!brainDocRef) return "";
+            try {
+                const docSnap = await getDoc(brainDocRef);
+                if (!docSnap.exists()) return "";
+                
+                const memories = docSnap.data().memories || [];
+                
+                return memories.map(item => {
+                    let perspectivesText = '';
+                    if (item.perspectives && Array.isArray(item.perspectives)) {
+                        perspectivesText = item.perspectives.map(p => `Perspective from ${p.name}: ${p.text}`).join('\n');
+                    }
+                    return `Topic: ${item.topic}\nSynthesis: ${item.synthesis}\nPerspectives:\n${perspectivesText}`;
+                }).join('\n\n');
+            } catch (e) {
+                console.error("Error loading past knowledge:", e);
+                return "";
+            }
+        };
+        const loadMemoryFromFirestore = async () => {
+             if (!userId) {
+                showError("User not authenticated. Cannot load memory.");
+                return;
+            }
+            dom.memoryList.innerHTML = '<div class="flex justify-center items-center"><div class="loading-animation"></div><span class="ml-2 text-gray-500">Loading...</span></div>';
+            dom.memoryContainer.classList.remove('hidden');
+            const brainDocRef = getBrainDocRef();
+            if (!brainDocRef) return;
+            try {
+                const docSnap = await getDoc(brainDocRef);
+                
+                if (docSnap.exists()) {
+                    const memories = docSnap.data().memories || [];
+                    dom.memoryList.innerHTML = '';
+                    if (memories.length === 0) {
+                        dom.memoryList.innerHTML = '<p class="text-center text-gray-500">Memory is empty.</p>';
+                    } else {
+                        // Sort by newest first
+                        memories.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        memories.forEach(item => {
+                            const memoryItem = document.createElement('div');
+                            memoryItem.className = 'bg-gray-200 rounded-lg p-3 text-sm flex justify-between items-center';
+                            memoryItem.innerHTML = `<span><b>${item.topic}</b> (${new Date(item.timestamp).toLocaleDateString()})</span>`;
+                            dom.memoryList.appendChild(memoryItem);
+                        });
+                    }
+                } else {
+                     dom.memoryList.innerHTML = '<p class="text-center text-gray-500">No memories found.</p>';
+                }
+            } catch (e) {
+                dom.memoryList.innerHTML = `<p class="text-center text-red-500">Error: ${e.message}</p>`;
+                console.error('Error loading memory from Firestore:', e);
+            }
+        };
+        
+        // --- UI & Visualization Functions ---
+        const showError = (message) => {
+            dom.errorContainer.textContent = message;
+            dom.errorContainer.classList.remove('hidden');
+            dom.loadingSpinner.classList.add('hidden');
+            dom.generateBtn.disabled = false;
+        };
+        const updateFlowchart = (step) => {
+            const steps = {
+                start: `graph TD; A[Input]; style A fill:#a0c4ff`,
+                perspectives: `graph TD; A[Input] --> B(Generating Perspectives...); style B fill:#bde0fe`,
+                debate: `graph TD; A[Input] --> B[Perspectives] --> C(Agentic Debate...); style C fill:#ffc8dd`,
+                synthesis: `graph TD; A[Input] --> B[Perspectives] --> D(Synthesizing...); style D fill:#c7f9cc`,
+                synthesis_debate: `graph TD; A[Input] --> B[Perspectives] --> C[Debate] --> D(Synthesizing...); style D fill:#c7f9cc`,
+                graph: `graph TD; A --> B --> D --> E(Mapping Knowledge); style E fill:#fcf6bd`,
+                graph_debate: `graph TD; A --> B --> C --> D --> E(Mapping Knowledge); style E fill:#fcf6bd`,
+            };
+            dom.processFlowchart.innerHTML = steps[step];
+            if (dom.processFlowchart.innerHTML.trim() !== '') {
+                dom.processFlowchart.removeAttribute('data-processed');
+                mermaid.run({ nodes: [dom.processFlowchart] });
+            }
+        };
+        
+        const addMessageToChat = (role, message) => {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${role === 'user' ? 'user-bubble' : 'model-bubble'}`;
+            bubble.innerHTML = message.replace(/\n/g, '<br>');
+            dom.chatHistoryDiv.appendChild(bubble);
+            dom.chatHistoryDiv.scrollTop = dom.chatHistoryDiv.scrollHeight;
+        };
+        // --- 3D Knowledge Graph ---
+        const knowledgeGraph = {
+            setup: () => {
+                if(renderer) { // Clean up previous renderer if it exists
+                    dom.graphContainer.removeChild(renderer.domElement);
+                    renderer.dispose();
+                }
+                const { clientWidth: width, clientHeight: height } = dom.graphContainer;
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(width, height);
+                dom.graphContainer.appendChild(renderer.domElement);
+                camera.position.z = 50;
+                scene.add(new THREE.DirectionalLight(0xffffff, 1.5));
+                scene.add(new THREE.AmbientLight(0xaaaaaa, 1));
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+            },
+            visualize: (concepts) => {
+                if (!concepts || !concepts.nodes || !concepts.edges) {
+                    console.error("Invalid concepts data for graph visualization");
+                    return;
+                }
+                dom.graphSection.classList.remove('hidden');
+                knowledgeGraph.setup();
+                
+                const nodeGeometry = new THREE.SphereGeometry(1, 24, 24);
+                const nodeMaterial = new THREE.MeshLambertMaterial({ color: 0x3b82f6 });
+                const nodes = {};
+                concepts.nodes.forEach(node => {
+                    const nodeMesh = new THREE.Mesh(nodeGeometry, nodeMaterial.clone());
+                    nodeMesh.position.set((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60);
+                    nodeMesh.userData = { id: node.id, label: node.label, description: node.description };
+                    scene.add(nodeMesh);
+                    nodes[node.id] = nodeMesh;
+                });
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x9ca3af });
+                concepts.edges.forEach(edge => {
+                    const startNode = nodes[edge.source];
+                    const endNode = nodes[edge.target];
+                    if (startNode && endNode) {
+                        const points = [startNode.position, endNode.position];
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        scene.add(new THREE.Line(geometry, edgeMaterial));
+                    }
+                });
+            },
+            animate: () => {
+                if(renderer) requestAnimationFrame(knowledgeGraph.animate);
+                
+                // Raycasting for hover effect
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(scene.children.filter(c => c instanceof THREE.Mesh));
+                if (intersects.length > 0) {
+                    if (INTERSECTED != intersects[0].object) {
+                        if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+                        INTERSECTED = intersects[0].object;
+                        INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+                        INTERSECTED.material.emissive.setHex(0x00ff00);
+                        
+                        dom.tooltip.style.display = 'block';
+                        dom.tooltip.innerHTML = `<b>${INTERSECTED.userData.label}</b><br>${INTERSECTED.userData.description || 'No description.'}`;
+                    }
+                } else {
+                    if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+                    INTERSECTED = null;
+                    dom.tooltip.style.display = 'none';
+                }
+                if (renderer && scene && camera) renderer.render(scene, camera);
+            }
+        };
+        const generateGraphData = async (synthesis) => {
+             try {
+                const graphPayload = createGraphPrompt(synthesis);
+                const graphResponse = await callApi(graphPayload);
+                return JSON.parse(graphResponse);
+            } catch (error) {
+                console.error('Error generating graph data:', error);
+                return null;
+            }
+        };
+        const calculateMeaningfulConfidence = async (perspectivesText) => {
+            try {
+                const confidencePayload = createConfidencePrompt(perspectivesText);
+                return await callApi(confidencePayload);
+            } catch (error) {
+                console.error("Error calculating confidence:", error);
+                return "Analysis Failed";
+            }
+        };
+        // --- Core Logic: Synthesis Modes ---
+        const handleStandardSynthesis = async (topic) => {
+            updateFlowchart('perspectives');
+            const perspectivePromises = personas.map(async (persona) => {
+                const card = document.createElement('div');
+                card.className = 'perspective-card p-4 md:p-6 shadow-sm flex flex-col items-center justify-center';
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name}</p><div class="loading-animation mb-2"></div>`;
+                dom.perspectivesContainer.appendChild(card);
+                
+                const payload = createPerspectivePrompt(topic, persona.instruction);
+                const output = await callApi(payload);
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name}</p><p class="text-gray-800 leading-relaxed text-sm">${output}</p>`;
+                return { name: persona.name, text: output };
+            });
+            return await Promise.all(perspectivePromises);
+        };
+        const handleAgenticDebate = async (topic) => {
+            updateFlowchart('perspectives');
+            let perspectives = [];
+            for (const persona of personas) {
+                const card = document.createElement('div');
+                card.className = 'perspective-card p-4 md:p-6 shadow-sm flex flex-col items-center justify-center';
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name} (Initial view)</p><div class="loading-animation mb-2"></div>`;
+                dom.perspectivesContainer.appendChild(card);
+                
+                const payload = createPerspectivePrompt(topic, persona.instruction);
+                const output = await callApi(payload);
+                perspectives.push({ name: persona.name, text: output });
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name} (Initial view)</p><p class="text-gray-800 leading-relaxed text-sm">${output}</p>`;
+            }
+            
+            updateFlowchart('debate');
+            let finalPerspectives = [];
+            for (let i = 0; i < personas.length; i++) {
+                const currentAgent = personas[i];
+                const otherPerspectives = perspectives.filter((_, j) => i !== j).map(p => `**${p.name}'s View:**\n${p.text}`).join('\n\n');
+                
+                const card = dom.perspectivesContainer.children[i];
+                if(card) card.innerHTML += `<div class="mt-4 pt-4 border-t border-gray-200"><p class="font-bold text-gray-700 mb-2">Rebuttal</p><div class="loading-animation mx-auto"></div></div>`;
+                const rebuttalPayload = createRebuttalPrompt(topic, currentAgent.instruction, otherPerspectives);
+                const rebuttal = await callApi(rebuttalPayload);
+                const combinedText = `Initial thought: ${perspectives[i].text}\n\nRebuttal/Refinement: ${rebuttal}`;
+                finalPerspectives.push({ name: currentAgent.name, text: combinedText });
+                
+                const rebuttalContainer = card ? card.querySelector('.border-t') : null;
+                if(rebuttalContainer) rebuttalContainer.innerHTML = `<p class="font-bold text-gray-700 mb-2">Rebuttal</p><p class="text-gray-800 text-sm italic">${rebuttal}</p>`;
+            }
+            return finalPerspectives;
+        };
+        
+        const handleChatResponse = async () => {
+            const userMessage = dom.chatInput.value.trim();
+            if (!userMessage) return;
+            dom.sendBtn.disabled = true;
+            dom.chatSpinner.classList.remove('hidden');
+            
+            chatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+            addMessageToChat('user', userMessage);
+            dom.chatInput.value = '';
+            try {
+                const pastKnowledge = await getKnowledgeForLLM();
+                const chatPayload = createChatPrompt(chatHistory, systemInstruction, pastKnowledge);
+                const modelResponse = await callApi(chatPayload);
+                
+                chatHistory.push({ role: 'model', parts: [{ text: modelResponse }] });
+                addMessageToChat('model', modelResponse);
+            } catch (error) {
+                showError(`An error occurred while getting a response: ${error.message}. Please try again.`);
+            } finally {
+                dom.sendBtn.disabled = false;
+                dom.chatSpinner.classList.add('hidden');
+            }
+        };
+        // --- Main Generate Function ---
+        const handleGenerate = async () => {
+            const topic = dom.topicInput.value.trim();
+            if (!topic) { showError("Please enter a topic."); return; }
+            if (!userId) { showError("User not authenticated. Please wait or refresh."); return; }
+            dom.generateBtn.disabled = true;
+            dom.loadingSpinner.classList.remove('hidden');
+            dom.perspectivesContainer.innerHTML = '';
+            dom.synthesisContainer.classList.add('hidden');
+            dom.graphSection.classList.add('hidden');
+            dom.errorContainer.classList.add('hidden');
+            dom.chatHistoryDiv.innerHTML = '';
+            dom.processVisContainer.classList.remove('hidden');
+            updateFlowchart('start');
+            try {
+                const isAgentic = dom.agenticToggle.checked;
+                const perspectivesResult = isAgentic ? await handleAgenticDebate(topic) : await handleStandardSynthesis(topic);
+                
+                updateFlowchart(isAgentic ? 'synthesis_debate' : 'synthesis');
+                dom.synthesisContainer.classList.remove('hidden');
+                dom.synthesisText.innerHTML = `<div class="loading-animation mx-auto"></div>`;
+                dom.confidenceScoreSpan.textContent = 'Analyzing...';
+                
+                const perspectivesText = perspectivesResult.map(p => `**${p.name}**: ${p.text}`).join('\n\n');
+                const confidence = await calculateMeaningfulConfidence(perspectivesText);
+                dom.confidenceScoreSpan.textContent = confidence;
+                
+                const synthesisPayload = createSynthesisPrompt(topic, perspectivesText, systemInstruction);
+                const synthesis = await callApi(synthesisPayload);
+                dom.synthesisText.innerHTML = synthesis.replace(/\n/g, '<br>');
+                
+                await saveKnowledgeToMemory(topic, synthesis, perspectivesResult);
+                
+                updateFlowchart(isAgentic ? 'graph_debate' : 'graph');
+                
+                const graphData = await generateGraphData(synthesis);
+                if (graphData) {
+                    knowledgeGraph.visualize(graphData);
+                    knowledgeGraph.animate();
+                } else {
+                    dom.graphSection.classList.add('hidden');
+                }
+                dom.chatContainer.classList.remove('hidden');
+            } catch (error) {
+                showError(`An error occurred: ${error.message}. Please check your connection and try again.`);
+            } finally {
+                dom.loadingSpinner.classList.add('hidden');
+                dom.generateBtn.disabled = false;
+            }
+        };
+        // --- Event Listeners and Initialization ---
+        const setupEventListeners = () => {
+            dom.generateBtn.addEventListener('click', handleGenerate);
+            dom.loadMemoryBtn.addEventListener('click', loadMemoryFromFirestore);
+            dom.topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGenerate(); });
+            dom.sendBtn.addEventListener('click', handleChatResponse);
+            dom.chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleChatResponse(); });
+            dom.copyBtn.addEventListener('click', () => {
+                const text = dom.synthesisText.innerText;
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                dom.copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+                setTimeout(() => dom.copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>`, 2000);
+            });
+            dom.themeSelect.addEventListener('change', (e) => {
+                const theme = e.target.value;
+                if (theme === 'hxca') {
+                    dom.mainContainer.classList.add('theme-hxca');
+                    document.body.classList.add('theme-hxca');
+                } else {
+                    dom.mainContainer.classList.remove('theme-hxca');
+                    document.body.classList.remove('theme-hxca');
+                }
+            });
+            // --- 3D Graph Controls ---
+            window.addEventListener('resize', () => {
+                if (renderer) {
+                    const { clientWidth, clientHeight } = dom.graphContainer;
+                    renderer.setSize(clientWidth, clientHeight);
+                    camera.aspect = clientWidth / clientHeight;
+                    camera.updateProjectionMatrix();
+                }
+            });
+            dom.graphContainer.addEventListener('contextmenu', (e) => e.preventDefault()); // Prevent right-click menu
+            dom.graphContainer.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { isDragging = true; } // Left click
+                if (e.button === 2) { isRightClickDragging = true; } // Right click
+                previousMousePosition.x = e.clientX;
+                previousMousePosition.y = e.clientY;
+            });
+            dom.graphContainer.addEventListener('mouseup', () => { isDragging = false; isRightClickDragging = false; });
+            dom.graphContainer.addEventListener('mouseleave', () => { isDragging = false; isRightClickDragging = false; }); // Stop dragging if mouse leaves
+            dom.graphContainer.addEventListener('mousemove', (e) => {
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                if (isDragging) { // Rotate
+                    scene.rotation.y += deltaX * 0.005;
+                    scene.rotation.x += deltaY * 0.005;
+                }
+                if (isRightClickDragging) { // Pan
+                    camera.position.x -= deltaX * 0.05;
+                    camera.position.y += deltaY * 0.05;
+                }
+                previousMousePosition.x = e.clientX;
+                previousMousePosition.y = e.clientY;
+                // Update mouse for raycasting
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                dom.tooltip.style.left = `${e.clientX - rect.left + 15}px`;
+                dom.tooltip.style.top = `${e.clientY - rect.top + 15}px`;
+            });
+            dom.graphContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.02;
+            });
+        };
+        
+        const initializeApp = async () => {
+            if (!firebaseConfig) {
+                dom.userIdDisplay.textContent = "Firebase config not found.";
+                showError("Application is not configured correctly. Cannot initialize.");
+                return;
+            }
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        dom.userIdDisplay.textContent = userId;
+                    } else {
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                             console.error("Authentication failed:", error);
+                             showError(`Authentication failed: ${error.message}`);
+                             dom.userIdDisplay.textContent = "Auth Failed";
+                        }
+                    }
+                });
+                setupEventListeners();
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+                showError(`Firebase initialization failed: ${e.message}`);
+                dom.userIdDisplay.textContent = "Init Failed";
+            }
+        };
+        initializeApp();
+    </script>
+</body>
+</html>
