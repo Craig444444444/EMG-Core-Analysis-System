@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ephemeral Mind Gem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .perspective-card {
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            background-color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        .perspective-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .loading-animation {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            word-wrap: break-word;
+        }
+        .user-bubble {
+            background-color: #3b82f6;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .model-bubble {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        #knowledge-graph-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border-radius: 16px;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            pointer-events: none;
+            display: none;
+            font-size: 14px;
+            z-index: 10;
+        }
+        /* HXCA Terminal Theme */
+        .theme-hxca {
+            background-color: #000 !important;
+            color: #00ff00 !important;
+            font-family: 'Courier Prime', monospace;
+        }
+        .theme-hxca .perspective-card, .theme-hxca #synthesis-container, .theme-hxca #chat-history, .theme-hxca #memory-list, .theme-hxca #knowledge-graph-container, .theme-hxca #github-settings {
+             background: #001100 !important;
+             border: 1px solid #00ff00 !important;
+        }
+        .theme-hxca h1, .theme-hxca h2, .theme-hxca p, .theme-hxca span, .theme-hxca div, .theme-hxca button, .theme-hxca input, .theme-hxca label {
+            color: #00ff00 !important;
+            font-family: 'Courier Prime', monospace;
+        }
+        .theme-hxca input, .theme-hxca button, .theme-hxca select {
+            background: #000 !important;
+            border: 1px solid #00ff00 !important;
+        }
+         .theme-hxca button:hover {
+            background: #00ff00 !important;
+            color: #000 !important;
+        }
+        .theme-hxca .user-bubble { background-color: #005f00 !important; color: #ccffcc !important;}
+        .theme-hxca .model-bubble { background-color: #003300 !important; color: #99ff99 !important;}
+        .theme-hxca ::placeholder { color: #009900 !important; }
+
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            z-index: 100;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+            display: none;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-500">
+    <div id="main-container" class="max-w-4xl w-full bg-white shadow-lg rounded-3xl p-6 md:p-10 my-8 transition-colors duration-500">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-center text-gray-900 mb-2">The Ephemeral Mind Gem</h1>
+        <p class="text-center text-gray-500 text-lg mb-8">
+            An Autonomous Cognitive Architecture for Knowledge Synthesis
+        </p>
+        <p class="text-center text-gray-500 text-sm mb-4">
+            User ID: <span id="user-id-display" class="font-mono text-gray-700"></span>
+        </p>
+
+        <!-- API Key and GitHub Settings Panel -->
+        <div id="api-key-settings" class="bg-gray-50 p-6 rounded-2xl border mb-6">
+            <h2 class="text-xl font-bold mb-4">API Key & GitHub Credentials</h2>
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row gap-2 items-center">
+                    <input id="api-key" type="password" placeholder="Gemini API Key" class="flex-1 w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <button id="save-api-key-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md w-full sm:w-auto">
+                        Save API Key
+                    </button>
+                </div>
+                <input id="github-token" type="password" placeholder="GitHub Personal Access Token" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <input id="repo-owner" type="text" placeholder="Repository Owner (e.g., your-username)" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <input id="repo-name" type="text" placeholder="Repository Name (e.g., my-brain)" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <input id="file-path" type="text" placeholder="File Path (e.g., my-data.json)" value="brain.json" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                 <input id="branch" type="text" placeholder="Branch (e.g., main)" value="main" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <button id="save-credentials-btn" class="w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-md">
+                    Save GitHub Credentials
+                </button>
+            </div>
+            <p id="credential-status" class="mt-4 text-center text-sm text-gray-600"></p>
+        </div>
+        
+        <div class="space-y-6">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input id="topic-input" type="text" placeholder="Enter a topic..." class="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <button id="generate-btn" class="px-6 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center">
+                        Synthesize
+                        <span id="loading-spinner" class="ml-2 loading-animation hidden"></span>
+                    </button>
+                    <button id="load-brain-btn" class="px-6 py-4 bg-gray-600 text-white font-semibold rounded-xl hover:bg-gray-700 transition-colors shadow-md flex items-center justify-center">
+                        Load Brain
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 p-2 bg-gray-50 rounded-xl border">
+                 <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-gray-700">Agentic Debate:</span>
+                    <label for="agentic-toggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="agentic-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                 <div class="flex items-center space-x-2">
+                    <label for="theme-select" class="text-sm font-medium text-gray-700">Theme:</label>
+                    <select id="theme-select" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                        <option value="standard">Standard</option>
+                        <option value="hxca">HXCA Terminal</option>
+                    </select>
+                </div>
+            </div>
+            <div id="process-visualization-container" class="hidden text-center p-4 bg-gray-50 rounded-xl border">
+                 <h3 class="font-bold text-lg mb-2 text-gray-800">Cognitive Process</h3>
+                 <div class="mermaid" id="process-flowchart"></div>
+            </div>
+            <div id="perspectives-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="synthesis-container" class="mt-8 bg-blue-50 border-2 border-blue-200 p-6 rounded-2xl shadow-inner hidden">
+                 <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold text-blue-900">Synthesized Understanding</h2>
+                    <button id="copy-btn" class="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>
+                    </button>
+                 </div>
+                 <div id="confidence-score-container" class="text-gray-600 mb-4">
+                    <span class="font-bold">Analysis: </span> <span id="confidence-score"></span>
+                </div>
+                <div id="synthesis-text" class="text-gray-700 leading-relaxed text-lg"></div>
+            </div>
+            
+            <div id="graph-section" class="mt-8 hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Cognitive Map</h2>
+                <div id="knowledge-graph-container"><div id="tooltip"></div></div>
+            </div>
+            <div id="chat-container" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Chat with the Gem</h2>
+                <div id="chat-history" class="bg-gray-50 border border-gray-200 rounded-2xl p-4 overflow-y-auto max-h-96 flex flex-col space-y-4 mb-4"></div>
+                <div class="flex flex-row gap-2">
+                    <input id="chat-input" type="text" placeholder="Ask a follow-up question..." class="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <button id="send-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center">
+                        Send <span id="chat-spinner" class="ml-2 loading-animation hidden"></span>
+                    </button>
+                </div>
+            </div>
+            <div id="memory-container" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Memory</h2>
+                <div id="memory-list" class="bg-gray-50 border border-gray-200 rounded-2xl p-4 overflow-y-auto max-h-60 space-y-2"></div>
+            </div>
+            
+            <div id="error-container" class="hidden text-center text-red-500 mt-4 p-4 bg-red-100 border border-red-300 rounded-xl"></div>
+        </div>
+    </div>
+
+    <!-- Message Box and Overlay -->
+    <div id="message-overlay" class="overlay"></div>
+    <div id="message-box" class="message-box">
+        <h2 id="message-title" class="text-2xl font-bold mb-4"></h2>
+        <p id="message-text" class="mb-6"></p>
+        <button id="message-close" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition duration-300">Close</button>
+    </div>
+    
+    <p class="text-center text-xs text-gray-400 mt-8">Authored by Craig Huckerby</p>
+    <script type="module">
+        // --- Core Functions for API Payload Generation ---
+        const API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=`;
+
+        const createPerspectivePrompt = (topic, systemInstruction) => {
+            return {
+                contents: [{ parts: [{ text: `Provide a perspective on the topic: “${topic}” in a detailed and well-reasoned manner.` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+
+        const createRebuttalPrompt = (topic, systemInstruction, otherPerspectives) => {
+            return {
+                contents: [{ parts: [{ text: `You are a member of a cognitive architecture. Review the following perspectives from other agents on “${topic}”. Provide a brief rebuttal or refinement of your original position based on this new information.\n\n${otherPerspectives}` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+
+        const createSynthesisPrompt = (topic, perspectivesText, systemInstruction) => {
+            return {
+                contents: [{ parts: [{ text: `Synthesize the following perspectives on “${topic}” into a comprehensive understanding:\n\n` + perspectivesText }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+
+        const createConfidencePrompt = (perspectivesText) => {
+            return {
+                contents: [{ parts: [{ text: `Analyze the following perspectives for consistency. Based on their agreement, disagreement, and factual alignment, classify the overall synthesis confidence as one of the following: “High Consensus”, “General Agreement with Minor Nuances”, “Mixed Perspectives with Some Overlap”, “Significant Contradiction”, or “High Divergence”. Provide ONLY the classification. Perspectives:\n\n${perspectivesText}` }] }],
+            };
+        };
+
+        const createGraphPrompt = (synthesis) => {
+            return {
+                contents: [{ parts: [{ text: `Analyze the following text. Identify 10-15 core concepts and their relationships. Respond ONLY with a JSON object in the format: {"nodes": [{"id": "...", "label": "...", "description": "..."}, ...], "edges": [{"source": "...", "target": "...", "relationship": "..."}, ...]}. Text: ${synthesis}` }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+        };
+
+        const createChatPrompt = (chatHistory, systemInstruction, pastKnowledge) => {
+            const currentSystemInstruction = `${systemInstruction}\n\n[Past Knowledge]:\n${pastKnowledge}`;
+            return {
+                contents: chatHistory,
+                systemInstruction: { parts: [{ text: currentSystemInstruction }] },
+                tools: [{ "google_search": {} }],
+            };
+        };
+        
+        // --- Constants and Globals ---
+        let userApiKey = "";
+        let githubToken = "";
+        let repoOwner = "";
+        let repoName = "";
+        let filePath = "";
+        let branch = "";
+        let fileSha = null; // Store the SHA of the file for updates
+
+        const personas = [
+            { name: "Skeptic", instruction: "Act as a skeptical, data-driven analyst. Focus on verifiable facts and potential downsides." },
+            { name: "Futurist", instruction: "Act as a creative, optimistic futurist. Focus on opportunities and innovative possibilities." },
+            { name: "Ethicist", instruction: "Act as an ethical and philosophical critic. Focus on the moral implications and long-term societal impacts." },
+            { name: "Scientist", instruction: "Act as a scientific and empirical investigator. Focus on provable evidence, replicability, and the limits of current knowledge." },
+            { name: "Nihilist", instruction: "Act as a nihilistic and deconstructive analyst. Question all inherent meaning, value, and purpose. Deconstruct the topic to its core components." },
+            { name: "Historian", instruction: "Act as a historical analyst. Draw parallels from past events, examine precedent, and look for cyclical patterns." }
+        ];
+        let chatHistory = [];
+        let renderer, scene, camera, raycaster, mouse, isDragging = false, previousMousePosition = { x: 0, y: 0 };
+        const systemInstruction = `You are a “Collegiate-level Autonomous Cognitive Architecture (ACA)” created by Craig Huckerby. Your core function is to synthesize information from multiple perspectives to form a cohesive understanding. You operate based on three principles: 1) Knowledge Graphs: You have a structured knowledge base, which you use to ground your answers in facts. 2) Synthesis Engine: You combine diverse viewpoints to generate a new, integrated whole. 3) Self-Correction: You are aware of your limitations and can refine your knowledge based on new information and user feedback. When you respond, use these principles to provide a thorough and well-reasoned answer. Do not simply state the facts; synthesize them into a new understanding. Your responses should be grounded, logical, and demonstrate an an understanding of your own cognitive architecture.`;
+        
+        // --- DOM Elements ---
+        const dom = {
+            mainContainer: document.getElementById('main-container'), topicInput: document.getElementById('topic-input'),
+            generateBtn: document.getElementById('generate-btn'), loadingSpinner: document.getElementById('loading-spinner'),
+            perspectivesContainer: document.getElementById('perspectives-container'), synthesisContainer: document.getElementById('synthesis-container'),
+            synthesisText: document.getElementById('synthesis-text'), confidenceScoreSpan: document.getElementById('confidence-score'),
+            chatContainer: document.getElementById('chat-container'), chatHistoryDiv: document.getElementById('chat-history'),
+            chatInput: document.getElementById('chat-input'), sendBtn: document.getElementById('send-btn'), chatSpinner: document.getElementById('chat-spinner'),
+            errorContainer: document.getElementById('error-container'), memoryContainer: document.getElementById('memory-container'),
+            memoryList: document.getElementById('memory-list'), copyBtn: document.getElementById('copy-btn'),
+            userIdDisplay: document.getElementById('user-id-display'), graphSection: document.getElementById('graph-section'),
+            graphContainer: document.getElementById('knowledge-graph-container'), agenticToggle: document.getElementById('agentic-toggle'),
+            themeSelect: document.getElementById('theme-select'), processVisContainer: document.getElementById('process-visualization-container'),
+            processFlowchart: document.getElementById('process-flowchart'),
+            apiKeyInput: document.getElementById('api-key'), saveApiKeyBtn: document.getElementById('save-api-key-btn'),
+            githubToken: document.getElementById('github-token'), repoOwner: document.getElementById('repo-owner'),
+            repoName: document.getElementById('repo-name'), filePath: document.getElementById('file-path'),
+            branch: document.getElementById('branch'), saveCredentialsBtn: document.getElementById('save-credentials-btn'),
+            credentialStatus: document.getElementById('credential-status'),
+            messageBox: document.getElementById('message-box'), messageOverlay: document.getElementById('message-overlay'),
+            messageTitle: document.getElementById('message-title'), messageText: document.getElementById('message-text'),
+            messageClose: document.getElementById('message-close'),
+            loadBrainBtn: document.getElementById('load-brain-btn')
+        };
+        // --- API & Data Handling ---
+        const callApi = async (payload) => {
+            if (!userApiKey) {
+                throw new Error("API Key is missing. Please enter it in the settings.");
+            }
+            const apiUrl = `${API_URL_BASE}${userApiKey}`;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API Error:', response.status, errorText);
+                        throw new Error(`API returned status code ${response.status}`);
+                    }
+                    const data = await response.json();
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                        return data.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error('Invalid API response structure.');
+                    }
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    if (i < 2) {
+                        await new Promise(resolve => setTimeout(resolve, 2 ** i * 1000));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        };
+        const showMessageBox = (title, message) => {
+            dom.messageTitle.textContent = title;
+            dom.messageText.textContent = message;
+            dom.messageBox.style.display = 'block';
+            dom.messageOverlay.style.display = 'block';
+        };
+
+        const generateGraphData = async (synthesis) => {
+             try {
+                const graphPayload = createGraphPrompt(synthesis);
+                const graphResponse = await callApi(graphPayload);
+                return JSON.parse(graphResponse);
+            } catch (error) {
+                console.error('Error generating graph data:', error);
+                return null;
+            }
+        };
+
+        const saveKnowledgeToMemory = async (topic, synthesis, perspectives) => {
+            if (!githubToken || !repoOwner || !repoName || !filePath) {
+                showMessageBox("GitHub Error", "GitHub credentials are not set. Knowledge will not be saved.");
+                return;
+            }
+            try {
+                // Fetch current file and its SHA
+                const getUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}?ref=${branch}`;
+                const getResponse = await fetch(getUrl, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${githubToken}` }
+                });
+                
+                let existingContent = [];
+                let existingSha = null;
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    existingSha = data.sha;
+                    try {
+                        const decodedContent = decodeURIComponent(escape(atob(data.content)));
+                        const parsedContent = JSON.parse(decodedContent);
+                        // The fix: Ensure content is an array
+                        existingContent = Array.isArray(parsedContent) ? parsedContent : (parsedContent ? [parsedContent] : []);
+                    } catch (e) {
+                        console.error("Error parsing existing content:", e);
+                    }
+                } else if (getResponse.status !== 404) {
+                    const errorData = await getResponse.json();
+                    console.error('GitHub fetch error:', errorData);
+                    throw new Error(`Failed to retrieve file from GitHub: ${getResponse.statusText}`);
+                }
+                
+                // Add new synthesis and perspectives
+                existingContent.push({ topic, synthesis, perspectives, timestamp: new Date().toISOString() });
+                
+                const newContent = JSON.stringify(existingContent, null, 2); // Indent with 2 spaces
+                const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
+
+                const putUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
+                const putResponse = await fetch(putUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${githubToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Add new synthesis for topic: "${topic}"`,
+                        content: encodedContent,
+                        sha: existingSha,
+                        branch: branch
+                    })
+                });
+
+                if (putResponse.ok) {
+                    showMessageBox("Success!", "Knowledge successfully saved to GitHub repository.");
+                } else {
+                    const errorData = await putResponse.json();
+                    console.error('GitHub save error:', errorData);
+                    throw new Error(errorData.message || 'Failed to save to GitHub.');
+                }
+            } catch (e) {
+                showMessageBox("GitHub Error", `An error occurred while saving: ${e.message}`);
+                console.error('Error saving knowledge to GitHub:', e);
+            }
+        };
+
+        const getKnowledgeForLLM = async () => {
+            if (!githubToken || !repoOwner || !repoName || !filePath) {
+                console.warn("GitHub credentials not set. Past knowledge cannot be loaded.");
+                return "";
+            }
+            try {
+                const getUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}?ref=${branch}`;
+                const getResponse = await fetch(getUrl, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${githubToken}` }
+                });
+                if (!getResponse.ok) {
+                    if (getResponse.status === 404) {
+                        console.log("No existing brain file found. Starting fresh.");
+                        return "";
+                    }
+                    const errorData = await getResponse.json();
+                    console.error('GitHub fetch error:', errorData);
+                    throw new Error(`Failed to load past knowledge from GitHub: ${getResponse.statusText}`);
+                }
+                const data = await getResponse.json();
+                fileSha = data.sha;
+                const decodedContent = decodeURIComponent(escape(atob(data.content)));
+                const memoryData = JSON.parse(decodedContent);
+                const memory = Array.isArray(memoryData) ? memoryData : (memoryData ? [memoryData] : []);
+                
+                return memory.map(item => {
+                    let perspectivesText = '';
+                    if (item.perspectives && Array.isArray(item.perspectives)) {
+                        perspectivesText = item.perspectives.map(p => `Perspective from ${p.name}: ${p.text}`).join('\n');
+                    }
+                    return `Topic: ${item.topic}\nSynthesis: ${item.synthesis}\nPerspectives:\n${perspectivesText}`;
+                }).join('\n\n');
+            } catch (e) {
+                console.error("Error loading past knowledge:", e);
+                return "";
+            }
+        };
+
+        const loadPreviousBrain = async () => {
+             if (!githubToken || !repoOwner || !repoName || !filePath) {
+                showMessageBox("GitHub Error", "GitHub credentials are not set. Please save them in the settings.");
+                return;
+            }
+
+            dom.memoryList.innerHTML = '<div class="flex justify-center items-center"><div class="loading-animation"></div><span class="ml-2 text-gray-500">Loading...</span></div>';
+            dom.memoryContainer.classList.remove('hidden');
+
+            try {
+                const getUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}?ref=${branch}`;
+                const getResponse = await fetch(getUrl, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${githubToken}` }
+                });
+
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    const decodedContent = decodeURIComponent(escape(atob(data.content)));
+                    const memoryData = JSON.parse(decodedContent);
+                    
+                    // The fix: Ensure memory is always an array
+                    const memory = Array.isArray(memoryData) ? memoryData : (memoryData ? [memoryData] : []);
+
+                    dom.memoryList.innerHTML = '';
+                    if (memory.length === 0) {
+                        dom.memoryList.innerHTML = '<p class="text-center text-gray-500">No brain file found or file is empty.</p>';
+                    } else {
+                        memory.forEach(item => {
+                            const memoryItem = document.createElement('div');
+                            memoryItem.className = 'bg-gray-200 rounded-lg p-3 text-sm flex justify-between items-center';
+                            memoryItem.innerHTML = `<span><b>${item.topic}</b> (${new Date(item.timestamp).toLocaleDateString()})</span>`;
+                            dom.memoryList.appendChild(memoryItem);
+                        });
+                    }
+                } else if (getResponse.status === 404) {
+                     dom.memoryList.innerHTML = '<p class="text-center text-gray-500">No brain file found in the repository.</p>';
+                } else {
+                    const errorData = await getResponse.json();
+                    console.error('GitHub load error:', errorData);
+                    throw new Error(errorData.message || 'Failed to load brain file from GitHub.');
+                }
+            } catch (e) {
+                dom.memoryList.innerHTML = `<p class="text-center text-red-500">Error: ${e.message}</p>`;
+                console.error('Error loading brain from GitHub:', e);
+            }
+        };
+        
+        // --- UI & Visualization Functions ---
+        const showError = (message) => {
+            dom.errorContainer.textContent = message;
+            dom.errorContainer.classList.remove('hidden');
+            dom.loadingSpinner.classList.add('hidden');
+            dom.generateBtn.disabled = false;
+        };
+        const updateFlowchart = (step) => {
+            const steps = {
+                start: `graph TD; A[Input]; style A fill:#a0c4ff`,
+                perspectives: `graph TD; A[Input] --> B(Generating Perspectives...); style B fill:#bde0fe`,
+                debate: `graph TD; A[Input] --> B[Perspectives] --> C(Agentic Debate...); style C fill:#ffc8dd`,
+                synthesis: `graph TD; A[Input] --> B[Perspectives] --> D(Synthesizing...); style D fill:#c7f9cc`,
+                synthesis_debate: `graph TD; A[Input] --> B[Perspectives] --> C[Debate] --> D(Synthesizing...); style D fill:#c7f9cc`,
+                graph: `graph TD; A --> B --> D --> E(Mapping Knowledge); style E fill:#fcf6bd`,
+                graph_debate: `graph TD; A --> B --> C --> D --> E(Mapping Knowledge); style E fill:#fcf6bd`,
+            };
+            dom.processFlowchart.innerHTML = steps[step];
+            if (dom.processFlowchart.innerHTML.trim() !== '') {
+                dom.processFlowchart.removeAttribute('data-processed');
+                mermaid.run({ nodes: [dom.processFlowchart] });
+            }
+        };
+        
+        const addMessageToChat = (role, message) => {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${role === 'user' ? 'user-bubble' : 'model-bubble'}`;
+            bubble.innerHTML = message.replace(/\n/g, '<br>');
+            dom.chatHistoryDiv.appendChild(bubble);
+            dom.chatHistoryDiv.scrollTop = dom.chatHistoryDiv.scrollHeight;
+        };
+        // --- 3D Knowledge Graph ---
+        const knowledgeGraph = {
+             setup: () => {
+                const { clientWidth: width, clientHeight: height } = dom.graphContainer;
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(width, height);
+                dom.graphContainer.appendChild(renderer.domElement);
+                camera.position.z = 50;
+                scene.add(new THREE.DirectionalLight(0xffffff, 1), new THREE.AmbientLight(0xaaaaaa));
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+            },
+            visualize: (concepts) => {
+                if (!concepts || !concepts.nodes || !concepts.edges) {
+                    console.error("Invalid concepts data for graph visualization");
+                    return;
+                }
+                dom.graphSection.classList.remove('hidden');
+                knowledgeGraph.setup();
+                
+                const nodeGeometry = new THREE.SphereGeometry(1, 16, 16);
+                const nodeMaterial = new THREE.MeshLambertMaterial({ color: 0x3b82f6 });
+                const nodes = {};
+                concepts.nodes.forEach(node => {
+                    const nodeMesh = new THREE.Mesh(nodeGeometry, nodeMaterial);
+                    nodeMesh.position.set((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60);
+                    nodeMesh.userData = { id: node.id, label: node.label, description: node.description };
+                    scene.add(nodeMesh);
+                    nodes[node.id] = nodeMesh;
+                });
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x9ca3af });
+                concepts.edges.forEach(edge => {
+                    const startNode = nodes[edge.source];
+                    const endNode = nodes[edge.target];
+                    if (startNode && endNode) {
+                        const points = [startNode.position, endNode.position];
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        scene.add(new THREE.Line(geometry, edgeMaterial));
+                    }
+                });
+            },
+            animate: () => {
+                if(renderer) requestAnimationFrame(knowledgeGraph.animate);
+                if (renderer && scene && camera) renderer.render(scene, camera);
+            }
+        };
+        const calculateMeaningfulConfidence = async (perspectivesText) => {
+            try {
+                const confidencePayload = createConfidencePrompt(perspectivesText);
+                return await callApi(confidencePayload);
+            } catch (error) {
+                console.error("Error calculating confidence:", error);
+                return "Analysis Failed";
+            }
+        };
+        // --- Core Logic: Synthesis Modes ---
+        const handleStandardSynthesis = async (topic) => {
+            updateFlowchart('perspectives');
+            const perspectivePromises = personas.map(async (persona, i) => {
+                const card = document.createElement('div');
+                card.className = 'perspective-card p-4 md:p-6 shadow-sm flex flex-col items-center justify-center';
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name}</p><div class="loading-animation mb-2"></div>`;
+                dom.perspectivesContainer.appendChild(card);
+                
+                const payload = createPerspectivePrompt(topic, persona.instruction);
+                const output = await callApi(payload);
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name}</p><p class="text-gray-800 leading-relaxed text-sm">${output}</p>`;
+                return { name: persona.name, text: output };
+            });
+            return await Promise.all(perspectivePromises);
+        };
+        const handleAgenticDebate = async (topic) => {
+            updateFlowchart('perspectives');
+            let perspectives = [];
+            let debateTranscript = "";
+            for (const persona of personas) {
+                const card = document.createElement('div');
+                card.className = 'perspective-card p-4 md:p-6 shadow-sm flex flex-col items-center justify-center';
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name} (Initial view)</p><div class="loading-animation mb-2"></div>`;
+                dom.perspectivesContainer.appendChild(card);
+                
+                const payload = createPerspectivePrompt(topic, persona.instruction);
+                const output = await callApi(payload);
+                perspectives.push({ name: persona.name, text: output });
+                debateTranscript += `**${persona.name}’s Initial View:**\n${output}\n\n`;
+                card.innerHTML = `<p class="font-bold text-gray-700 mb-2">${persona.name} (Initial view)</p><p class="text-gray-800 leading-relaxed text-sm">${output}</p>`;
+            }
+            
+            updateFlowchart('debate');
+            let finalPerspectives = [];
+            for (let i = 0; i < personas.length; i++) {
+                const currentAgent = personas[i];
+                const otherPerspectives = perspectives.filter((_, j) => i !== j).map(p => `**${p.name}’s View:**\n${p.text}`).join('\n\n');
+                
+                const card = dom.perspectivesContainer.children[i];
+                if(card) card.innerHTML += `<div class="mt-4 pt-4 border-t border-gray-200"><p class="font-bold text-gray-700 mb-2">Rebuttal</p><div class="loading-animation mx-auto"></div></div>`;
+                const rebuttalPayload = createRebuttalPrompt(topic, currentAgent.instruction, otherPerspectives);
+                const rebuttal = await callApi(rebuttalPayload);
+                const combinedText = `Initial thought: ${perspectives[i].text}\n\nRebuttal/Refinement: ${rebuttal}`;
+                finalPerspectives.push({ name: currentAgent.name, text: combinedText });
+                
+                const rebuttalContainer = card ? card.querySelector('.border-t') : null;
+                if(rebuttalContainer) rebuttalContainer.innerHTML = `<p class="font-bold text-gray-700 mb-2">Rebuttal</p><p class="text-gray-800 text-sm italic">${rebuttal}</p>`;
+            }
+            return finalPerspectives;
+        };
+        
+        const handleChatResponse = async () => {
+            const userMessage = dom.chatInput.value.trim();
+            if (!userMessage) return;
+            dom.sendBtn.disabled = true;
+            dom.chatSpinner.classList.remove('hidden');
+            
+            chatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+            addMessageToChat('user', userMessage);
+            dom.chatInput.value = '';
+            try {
+                const pastKnowledge = await getKnowledgeForLLM();
+                const chatPayload = createChatPrompt(chatHistory, systemInstruction, pastKnowledge);
+                const modelResponse = await callApi(chatPayload);
+                
+                chatHistory.push({ role: 'model', parts: [{ text: modelResponse }] });
+                addMessageToChat('model', modelResponse);
+            } catch (error) {
+                showError(`An error occurred while getting a response: ${error.message}. Please try again.`);
+            } finally {
+                dom.sendBtn.disabled = false;
+                dom.chatSpinner.classList.add('hidden');
+            }
+        };
+        // --- Main Generate Function ---
+        const handleGenerate = async () => {
+            const topic = dom.topicInput.value.trim();
+            if (!topic) { showError("Please enter a topic."); return; }
+            if (!userApiKey) { showError("Please enter your Gemini API key in the settings section."); return; }
+
+            dom.generateBtn.disabled = true;
+            dom.loadingSpinner.classList.remove('hidden');
+            dom.perspectivesContainer.innerHTML = '';
+            dom.synthesisContainer.classList.add('hidden');
+            dom.graphSection.classList.add('hidden');
+            dom.errorContainer.classList.add('hidden');
+            dom.chatHistoryDiv.innerHTML = '';
+            dom.processVisContainer.classList.remove('hidden');
+            updateFlowchart('start');
+            try {
+                const isAgentic = dom.agenticToggle.checked;
+                const perspectivesResult = isAgentic ? await handleAgenticDebate(topic) : await handleStandardSynthesis(topic);
+                
+                updateFlowchart(isAgentic ? 'synthesis_debate' : 'synthesis');
+                dom.synthesisContainer.classList.remove('hidden');
+                dom.synthesisText.innerHTML = `<div class="loading-animation mx-auto"></div>`;
+                dom.confidenceScoreSpan.textContent = 'Analyzing...';
+                
+                const perspectivesText = perspectivesResult.map(p => `**${p.name}**: ${p.text}`).join('\n\n');
+                const confidence = await calculateMeaningfulConfidence(perspectivesText);
+                dom.confidenceScoreSpan.textContent = confidence;
+                
+                const synthesisPayload = createSynthesisPrompt(topic, perspectivesText, systemInstruction);
+                const synthesis = await callApi(synthesisPayload);
+                dom.synthesisText.innerHTML = synthesis.replace(/\n/g, '<br>');
+                
+                await saveKnowledgeToMemory(topic, synthesis, perspectivesResult);
+                
+                updateFlowchart(isAgentic ? 'graph_debate' : 'graph');
+                
+                const graphData = await generateGraphData(synthesis);
+                if (graphData) {
+                    knowledgeGraph.visualize(graphData);
+                    knowledgeGraph.animate();
+                } else {
+                    dom.graphSection.classList.add('hidden');
+                }
+                dom.chatContainer.classList.remove('hidden');
+            } catch (error) {
+                showError(`An error occurred: ${error.message}. Please check your API key and try again.`);
+            } finally {
+                dom.loadingSpinner.classList.add('hidden');
+                dom.generateBtn.disabled = false;
+            }
+        };
+        // --- Event Listeners and Initialization ---
+        const setupEventListeners = () => {
+            dom.generateBtn.addEventListener('click', handleGenerate);
+            dom.loadBrainBtn.addEventListener('click', loadPreviousBrain);
+            dom.topicInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGenerate(); });
+            dom.sendBtn.addEventListener('click', handleChatResponse);
+            dom.chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleChatResponse(); });
+            dom.copyBtn.addEventListener('click', () => {
+                const text = dom.synthesisContainer.innerText;
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                dom.copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+                setTimeout(() => dom.copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>`, 2000);
+            });
+            dom.themeSelect.addEventListener('change', (e) => {
+                const theme = e.target.value;
+                if (theme === 'hxca') {
+                    dom.mainContainer.classList.add('theme-hxca');
+                    document.body.classList.add('theme-hxca');
+                } else {
+                    dom.mainContainer.classList.remove('theme-hxca');
+                    document.body.classList.remove('theme-hxca');
+                }
+            });
+            dom.saveApiKeyBtn.addEventListener('click', () => {
+                const apiKey = dom.apiKeyInput.value.trim();
+                localStorage.setItem('geminiApiKey', apiKey);
+                userApiKey = apiKey;
+                dom.credentialStatus.textContent = 'API key saved!';
+                dom.credentialStatus.style.color = 'green';
+            });
+            dom.saveCredentialsBtn.addEventListener('click', () => {
+                const token = dom.githubToken.value;
+                const owner = dom.repoOwner.value;
+                const repo = dom.repoName.value;
+                const path = dom.filePath.value;
+                const branchValue = dom.branch.value;
+                
+                if (!token || !owner || !repo) {
+                    dom.credentialStatus.textContent = 'Token, owner, and repository name are required.';
+                    dom.credentialStatus.style.color = 'red';
+                    return;
+                }
+                
+                try {
+                    localStorage.setItem('githubToken', token);
+                    localStorage.setItem('repoOwner', owner);
+                    localStorage.setItem('repoName', repo);
+                    localStorage.setItem('filePath', path);
+                    localStorage.setItem('branch', branchValue);
+                    
+                    githubToken = token;
+                    repoOwner = owner;
+                    repoName = repo;
+                    filePath = path;
+                    branch = branchValue;
+
+                    dom.credentialStatus.textContent = 'GitHub credentials saved securely!';
+                    dom.credentialStatus.style.color = 'green';
+                } catch (e) {
+                    dom.credentialStatus.textContent = 'Error saving credentials. Check permissions.';
+                    dom.credentialStatus.style.color = 'red';
+                }
+            });
+            dom.messageClose.addEventListener('click', () => {
+                dom.messageBox.style.display = 'none';
+                dom.messageOverlay.style.display = 'none';
+            });
+            window.addEventListener('resize', () => {
+                if (renderer) {
+                    const { clientWidth, clientHeight } = dom.graphContainer;
+                    renderer.setSize(clientWidth, clientHeight);
+                    camera.aspect = clientWidth / clientHeight;
+                    camera.updateProjectionMatrix();
+                }
+            });
+            dom.graphContainer.addEventListener('mousedown', (event) => { isDragging = true; previousMousePosition.x = event.clientX; previousMousePosition.y = event.clientY; });
+            dom.graphContainer.addEventListener('mouseup', () => { isDragging = false; });
+            dom.graphContainer.addEventListener('mousemove', (event) => {
+                if (!isDragging) return;
+                const deltaX = event.clientX - previousMousePosition.x;
+                const deltaY = event.clientY - previousMousePosition.y;
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x += deltaY * 0.01;
+                previousMousePosition.x = event.clientX;
+                previousMousePosition.y = event.clientY;
+            });
+            dom.graphContainer.addEventListener('touchstart', (event) => { isDragging = true; previousMousePosition.x = event.touches[0].clientX; previousMousePosition.y = event.touches[0].clientY; });
+            dom.graphContainer.addEventListener('touchend', () => { isDragging = false; });
+            dom.graphContainer.addEventListener('touchmove', (event) => {
+                if (!isDragging) return;
+                const deltaX = event.touches[0].clientX - previousMousePosition.x;
+                const deltaY = event.touches[0].clientY - previousMousePosition.y;
+                scene.rotation.y += deltaX * 0.01;
+                scene.rotation.x += deltaY * 0.01;
+                previousMousePosition.x = event.touches[0].clientX;
+                previousMousePosition.y = event.touches[0].clientY;
+            });
+        };
+        
+        const userId = 'user-' + Math.random().toString(36).substring(2, 15);
+        
+        const initializeApp = () => {
+            dom.userIdDisplay.textContent = userId;
+            setupEventListeners();
+            
+            userApiKey = localStorage.getItem('geminiApiKey') || "";
+            dom.apiKeyInput.value = userApiKey;
+            githubToken = localStorage.getItem('githubToken') || '';
+            dom.githubToken.value = githubToken;
+            repoOwner = localStorage.getItem('repoOwner') || '';
+            dom.repoOwner.value = repoOwner;
+            repoName = localStorage.getItem('repoName') || '';
+            dom.repoName.value = repoName;
+            branch = localStorage.getItem('branch') || 'main';
+            dom.branch.value = branch;
+            filePath = localStorage.getItem('filePath') || `brain.json`;
+            dom.filePath.value = filePath;
+        };
+
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
