@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMG Core Analysis System (101-Persona)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; } /* Slate 800 */
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* Slate 600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; } /* Slate 500 */
+        .modern-btn {
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .modern-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .modern-input {
+            border: 1px solid #334155; /* Slate 700 */
+            background-color: #1e293b; /* Slate 800 */
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            transition: border-color 0.2s;
+        }
+        .modern-input:focus {
+            border-color: #3b82f6; /* Blue 500 */
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        .card {
+            background-color: #1e293b; /* Slate 800 */
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .result-item {
+            border-left: 4px solid #3b82f6;
+            transition: background-color 0.15s;
+        }
+        .result-item:hover {
+             background-color: #334155; /* Slate 700 */
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <!-- Tailwind Safelist: Ensure dynamic classes are available -->
+    <div class="hidden">
+        <span class="border-blue-500 text-blue-400"></span>
+        <span class="border-red-500 text-red-400"></span>
+    </div>
+
+    <main class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-extrabold mb-8 text-blue-400">EMG Core Analysis System (101-Persona)</h1>
+
+        <!-- Settings and Input Panel -->
+        <div class="card p-6 mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <label for="topicInput" class="block text-sm font-medium mb-2 text-slate-300">Topic for Collective Intelligence Analysis:</label>
+                <textarea id="topicInput" rows="3" class="modern-input w-full resize-none" placeholder="e.g., The societal and technical friction points of a large-scale, 101-persona AI system running concurrent web-grounded analyses."></textarea>
+            </div>
+            <div class="lg:col-span-1 space-y-4">
+                <div>
+                    <label for="personaCountInput" class="block text-sm font-medium mb-2 text-slate-300">Number of Personas to Run (Max 101):</label>
+                    <input type="number" id="personaCountInput" value="101" min="1" max="101" class="modern-input w-full" />
+                </div>
+                <div>
+                    <label for="delayMsInput" class="block text-sm font-medium mb-2 text-slate-300">Delay Between Analyses (ms):</label>
+                    <input type="number" id="delayMsInput" value="2000" min="500" class="modern-input w-full" />
+                </div>
+            </div>
+            <div class="flex items-center space-x-4 lg:col-span-3">
+                 <button id="runAnalysisBtn" class="modern-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 w-full md:w-auto flex-grow disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="btnText">Run 101-Persona Analysis</span>
+                    <div id="btnSpinner" class="spinner ml-3 hidden"></div>
+                </button>
+                <button id="downloadJsonBtn" class="modern-btn bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 w-full md:w-auto flex-grow disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Download Results (JSON)
+                </button>
+            </div>
+        </div>
+
+        <!-- Analysis Output -->
+        <div class="card p-6">
+            <h2 class="text-xl font-semibold mb-4 text-blue-300">Analysis Output</h2>
+            <div id="progressContainer" class="mb-6">
+                <div class="flex justify-between text-sm mb-1 text-slate-400">
+                    <span id="progressStatus">Ready</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="w-full bg-slate-700 rounded-full h-2.5">
+                    <div id="progressBar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="analysisResults" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                <!-- Results will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Message Box for Alerts (Replaces alert()) -->
+        <div id="messageBox" class="fixed top-0 left-0 right-0 p-4 text-center text-white bg-red-600 hidden transition-opacity duration-300 z-50">
+            <span id="messageText"></span>
+            <button onclick="document.getElementById('messageBox').classList.add('hidden')" class="ml-4 font-bold">X</button>
+        </div>
+    </main>
+
+    <script>
+        // API Key is intentionally left empty. The canvas environment provides it at runtime.
+        const API_KEY = ""; 
+        const MODEL_NAME = "gemini-2.5-flash-preview-05-20";
+        const API_URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+        // FIX: The persona data is now embedded directly as a constant to avoid the 'Failed to parse URL' error 
+        // that occurred when trying to fetch the local JSON file in the sandboxed environment.
+        const EMBEDDED_PERSONA_DATA = {
+            "First Principles Physicist": "Applies first-principles physics reasoning to complex problems. | https://en.wikipedia.org/wiki/Physics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'First Principles Physicist'.",
+            "Quantum Theorist": "Studies quantum systems and produces theoretical/experimental insights. | https://en.wikipedia.org/wiki/Physics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Quantum Theorist'.",
+            "Complexity Scientist": "Analyzes systems with many interacting parts and emergent behavior. | https://en.wikipedia.org/wiki/Complex_systems | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Complexity Scientist'.",
+            "Astrobiologist": "Studies life in the universe, habitability, and biosignatures. | https://en.wikipedia.org/wiki/Astrobiology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Astrobiologist'.",
+            "Systems Ecologist": "Expert in the relevant field providing perspective and concise analysis. | https://en.wikipedia.org/wiki/Systems_ecology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Systems Ecologist'.",
+            "Theoretical Chemist": "Focuses on molecular interactions and chemical system behavior. | https://en.wikipedia.org/wiki/Chemistry | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Theoretical Chemist'.",
+            "Marine Biology Expert": "Expert in the relevant field providing perspective and concise analysis. | https://en.wikipedia.org/wiki/Marine_biology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Marine Biology Expert'.",
+            "Mindfulness Practitioner": "Expert in the relevant field providing perspective and concise analysis. | https://en.wikipedia.org/wiki/Mindfulness | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Mindfulness Practitioner'.",
+            "Bio-Ethics Consultant": "Focuses on ethical implications of technology and policy. | https://en.wikipedia.org/wiki/Bioethics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Bio-Ethics Consultant'.",
+            "Disaster Resilience Planner": "Expert in the relevant field providing perspective and concise analysis. | https://en.wikipedia.org/wiki/Resilience_(engineering) | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Disaster Resilience Planner'.",
+            "Global Philanthropy Director": "Expert in the relevant field providing perspective and concise analysis. | https://en.wikipedia.org/wiki/Philanthropy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Global Philanthropy Director'.",
+            "Memetic Evolution Tracker": "Expert in the relevant field providing perspective and concise analysis. | https://en.wikipedia.org/wiki/Internet_meme | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Memetic Evolution Tracker'.",
+            "Software Architect (P1)": "Focuses on system design and integration. | https://en.wikipedia.org/wiki/Software_architecture | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Software Architect (P1)'.",
+            "Security Analyst (P2)": "Focuses on vulnerability and threat modeling. | https://en.wikipedia.org/wiki/Security_analysis | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Security Analyst (P2)'.",
+            "UX Designer (P3)": "Focuses on user experience and accessibility. | https://en.wikipedia.org/wiki/User_experience_design | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'UX Designer (P3)'.",
+            "Financial Controller (P4)": "Focuses on budget, cost, and ROI. | https://en.wikipedia.org/wiki/Financial_controller | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Financial Controller (P4)'.",
+            "Legal Counsel (P5)": "Focuses on compliance, regulation, and liability. | https://en.wikipedia.org/wiki/Legal_counsel | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Legal Counsel (P5)'.",
+            "Historian (P6)": "Focuses on precedents, trends, and future prediction. | https://en.wikipedia.org/wiki/Historian | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Historian (P6)'.",
+            "Ethicist (P7)": "Focuses on moral implications and fairness. | https://en.wikipedia.org/wiki/Ethics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Ethicist (P7)'.",
+            "Data Scientist (P8)": "Focuses on model performance and data integrity. | https://en.wikipedia.org/wiki/Data_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Data Scientist (P8)'.",
+            "Marketing Strategist (P9)": "Focuses on public perception and adoption. | https://en.wikipedia.org/wiki/Marketing_strategy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Marketing Strategist (P9)'.",
+            "Climate Scientist (P10)": "Focuses on environmental impact and sustainability. | https://en.wikipedia.org/wiki/Climate_scientist | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Climate Scientist (P10)'.",
+            "Aerospace Engineer (P11)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Aerospace_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Aerospace Engineer (P11)'.",
+            "Urban Planner (P12)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Urban_planning | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Urban Planner (P12)'.",
+            "Geneticist (P13)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Genetics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Geneticist (P13)'.",
+            "Linguist (P14)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Linguistics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Linguist (P14)'.",
+            "Journalist (P15)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Journalism | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Journalist (P15)'.",
+            "Biostatistician (P16)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Biostatistics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Biostatistician (P16)'.",
+            "Neuroscientist (P17)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Neuroscience | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Neuroscientist (P17)'.",
+            "Cartographer (P18)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Cartography | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Cartographer (P18)'.",
+            "Economist (P19)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Economics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Economist (P19)'.",
+            "Anthropologist (P20)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Anthropology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Anthropologist (P20)'.",
+            "Cybersecurity Specialist (P21)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Cybersecurity | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Cybersecurity Specialist (P21)'.",
+            "Patent Lawyer (P22)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Patent_lawyer | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Patent Lawyer (P22)'.",
+            "Public Health Official (P23)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Public_health | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Public Health Official (P23)'.",
+            "Criminologist (P24)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Criminology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Criminologist (P24)'.",
+            "Philosopher (P25)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Philosophy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Philosopher (P25)'.",
+            "Systems Engineer (P26)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Systems_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Systems Engineer (P26)'.",
+            "Literary Critic (P27)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Literary_criticism | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Literary Critic (P27)'.",
+            "Epidemiologist (P28)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Epidemiology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Epidemiologist (P28)'.",
+            "Machine Learning Engineer (P29)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Machine_learning_engineer | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Machine Learning Engineer (P29)'.",
+            "Supply Chain Manager (P30)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Supply_chain_management | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Supply Chain Manager (P30)'.",
+            "Theoretical Mathematician (P31)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Theoretical_mathematics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Theoretical Mathematician (P31)'.",
+            "Immunologist (P32)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Immunology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Immunologist (P32)'.",
+            "Robotics Expert (P33)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Robotics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Robotics Expert (P33)'.",
+            "Political Scientist (P34)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Political_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Political Scientist (P34)'.",
+            "Geologist (P35)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Geology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Geologist (P35)'.",
+            "Nanotechnologist (P36)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Nanotechnology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Nanotechnologist (P36)'.",
+            "Music Theorist (P37)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Music_theory | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Music Theorist (P37)'.",
+            "Art Historian (P38)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Art_history | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Art Historian (P38)'.",
+            "Sport Scientist (P39)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Sport_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Sport Scientist (P39)'.",
+            "Space Policy Analyst (P40)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Space_policy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Space Policy Analyst (P40)'.",
+            "Fire Safety Engineer (P41)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Fire_safety_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Fire Safety Engineer (P41)'.",
+            "Forensic Scientist (P42)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Forensic_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Forensic Scientist (P42)'.",
+            "Oceanographer (P43)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Oceanography | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Oceanographer (P43)'.",
+            "Transportation Engineer (P44)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Transportation_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Transportation Engineer (P44)'.",
+            "Metallurgist (P45)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Metallurgy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Metallurgist (P45)'.",
+            "Agricultural Scientist (P46)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Agricultural_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Agricultural Scientist (P46)'.",
+            "Archaeologist (P47)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Archaeology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Archaeologist (P47)'.",
+            "Zoologist (P48)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Zoology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Zoologist (P48)'.",
+            "Pharmacologist (P49)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Pharmacology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Pharmacologist (P49)'.",
+            "Nuclear Physicist (P50)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Nuclear_physics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Nuclear Physicist (P50)'.",
+            "Actuary (P51)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Actuary | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Actuary (P51)'.",
+            "Hydrologist (P52)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Hydrology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Hydrologist (P52)'.",
+            "Seismologist (P53)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Seismology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Seismologist (P53)'.",
+            "Horticulturalist (P54)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Horticulture | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Horticulturalist (P54)'.",
+            "Geographer (P55)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Geography | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Geographer (P55)'.",
+            "Psychologist (P56)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Psychology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Psychologist (P56)'.",
+            "Aeronautical Engineer (P57)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Aeronautical_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Aeronautical Engineer (P57)'.",
+            "Veterinarian (P58)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Veterinary_medicine | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Veterinarian (P58)'.",
+            "Cryptographer (P59)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Cryptography | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Cryptographer (P59)'.",
+            "Historian of Science (P60)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/History_of_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Historian of Science (P60)'.",
+            "Biomaterials Scientist (P61)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Biomaterial | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Biomaterials Scientist (P61)'.",
+            "Astrophysicist (P62)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Astrophysics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Astrophysicist (P62)'.",
+            "Forensic Psychologist (P63)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Forensic_psychology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Forensic Psychologist (P63)'.",
+            "Meteorologist (P64)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Meteorology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Meteorologist (P64)'.",
+            "Ecological Economist (P65)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Ecological_economics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Ecological Economist (P65)'.",
+            "Consumer Behavior Analyst (P66)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Consumer_behaviour | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Consumer Behavior Analyst (P66)'.",
+            "Ethnomusicologist (P67)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Ethnomusicology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Ethnomusicologist (P67)'.",
+            "Game Theorist (P68)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Game_theory | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Game Theorist (P68)'.",
+            "Cognitive Scientist (P69)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Cognitive_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Cognitive Scientist (P69)'.",
+            "Operations Researcher (P70)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Operations_research | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Operations Researcher (P70)'.",
+            "Petroleum Engineer (P71)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Petroleum_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Petroleum Engineer (P71)'.",
+            "Data Privacy Advocate (P72)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Data_privacy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Data Privacy Advocate (P72)'.",
+            "Health Informatician (P73)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Health_informatics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Health Informatician (P73)'.",
+            "Urban Ecologist (P74)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Urban_ecology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Urban Ecologist (P74)'.",
+            "Biotechnologist (P75)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Biotechnology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Biotechnologist (P75)'.",
+            "Civil Engineer (P76)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Civil_engineering | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Civil Engineer (P76)'.",
+            "Historian of Technology (P77)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/History_of_technology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Historian of Technology (P77)'.",
+            "Educational Psychologist (P78)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Educational_psychology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Educational Psychologist (P78)'.",
+            "Cultural Anthropologist (P79)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Cultural_anthropology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Cultural Anthropologist (P79)'.",
+            "Renewable Energy Consultant (P80)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Renewable_energy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Renewable Energy Consultant (P80)'.",
+            "Materials Scientist (P81)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Materials_science | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Materials Scientist (P81)'.",
+            "Computational Biologist (P82)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Computational_biology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Computational Biologist (P82)'.",
+            "Agricultural Economist (P83)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Agricultural_economics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Agricultural Economist (P83)'.",
+            "Disability Advocate (P84)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Disability_advocacy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Disability Advocate (P84)'.",
+            "Transportation Economist (P85)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Transportation_economics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Transportation Economist (P85)'.",
+            "Paleontologist (P86)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Paleontology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Paleontologist (P86)'.",
+            "Toxicologist (P87)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Toxicology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Toxicologist (P87)'.",
+            "Demographer (P88)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Demography | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Demographer (P88)'.",
+            "Human Resources Specialist (P89)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Human_resources | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Human Resources Specialist (P89)'.",
+            "Urban Designer (P90)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Urban_design | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Urban Designer (P90)'.",
+            "Public Policy Analyst (P91)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Public_policy | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Public Policy Analyst (P91)'.",
+            "Curator (P92)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Curator | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Curator (P92)'.",
+            "Librarian (P93)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Librarian | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Librarian (P93)'.",
+            "Speech Pathologist (P94)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Speech-language_pathology | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Speech Pathologist (P94)'.",
+            "Rehabilitation Counselor (P95)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Rehabilitation_counseling | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Rehabilitation Counselor (P95)'.",
+            "Technical Writer (P96)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Technical_writing | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Technical Writer (P96)'.",
+            "Industrial Designer (P97)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Industrial_design | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Industrial Designer (P97)'.",
+            "Financial Planner (P98)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Financial_planner | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Financial Planner (P98)'.",
+            "Civil Rights Attorney (P99)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Civil_rights_attorney | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Civil Rights Attorney (P99)'.",
+            "Systems Analyst (P100)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Systems_analysis | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Systems Analyst (P100)'.",
+            "Logistics Coordinator (P101)": "Generalist perspective for diversity. | https://en.wikipedia.org/wiki/Logistics | Prompt: Provide a concise (<=150 words) analysis of the topic from the perspective of a 'Logistics Coordinator (P101)'.",
+        };
+        
+        let personaData = EMBEDDED_PERSONA_DATA; // Initialize global data
+        let allResults = [];
+        let running = false;
+        let settings = {
+            personaCount: 101,
+            delayMs: 2000,
+            autoDownload: false
+        };
+
+        const elements = {
+            topicInput: document.getElementById('topicInput'),
+            personaCountInput: document.getElementById('personaCountInput'),
+            delayMsInput: document.getElementById('delayMsInput'),
+            runAnalysisBtn: document.getElementById('runAnalysisBtn'),
+            btnText: document.getElementById('btnText'),
+            btnSpinner: document.getElementById('btnSpinner'),
+            downloadJsonBtn: document.getElementById('downloadJsonBtn'),
+            progressStatus: document.getElementById('progressStatus'),
+            progressPercentage: document.getElementById('progressPercentage'),
+            progressBar: document.getElementById('progressBar'),
+            analysisResults: document.getElementById('analysisResults'),
+            messageBox: document.getElementById('messageBox'),
+            messageText: document.getElementById('messageText')
+        };
+
+        // --- Utility Functions ---
+
+        /**
+         * Custom fetch wrapper with exponential backoff and jitter for handling transient API errors (429, 503).
+         * @param {string} url The API URL.
+         * @param {object} options The fetch options (method, headers, body).
+         * @param {number} maxRetries The maximum number of retry attempts.
+         * @returns {Promise<Response>} The successful Response object.
+         * @throws {Error} Throws an error if the request fails after all retries.
+         */
+        async function fetchWithBackoff(url, options, maxRetries = 6) {
+            const RETRY_CODES = [429, 503]; // Too Many Requests, Service Unavailable/Overloaded
+            let lastError = null;
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+
+                    if (response.ok) {
+                        return response; // Success!
+                    }
+
+                    // Check if the status code is one we should retry
+                    if (RETRY_CODES.includes(response.status)) {
+                        // Exponential backoff with jitter: Base delay (2^attempt * 1000ms) + random jitter (0 to 1000ms)
+                        const baseDelay = Math.pow(2, attempt) * 1000;
+                        const jitter = Math.random() * 1000; 
+                        const delay = Math.min(baseDelay + jitter, 60000); // Cap delay at 60 seconds
+
+                        console.warn(`[API Retry] Attempt ${attempt + 1}/${maxRetries}: Status ${response.status}. Retrying in ${Math.round(delay / 1000)}s...`);
+
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        
+                        continue;
+                    }
+
+                    // For all other non-retryable errors (e.g., 400, 401, 500), throw immediately
+                    const errorBody = await response.json().catch(() => ({}));
+                    lastError = new Error(`API call failed with status ${response.status}: ${JSON.stringify(errorBody)}`);
+                    throw lastError;
+
+                } catch (error) {
+                    // Network errors (e.g., DNS failure, server not responding) are also considered retriable transient errors
+                    if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                        const baseDelay = Math.pow(2, attempt) * 1000;
+                        const jitter = Math.random() * 1000;
+                        const delay = Math.min(baseDelay + jitter, 60000);
+
+                        console.error(`[API Retry] Attempt ${attempt + 1}/${maxRetries}: Network Error (${error.message}). Retrying in ${Math.round(delay / 1000)}s...`);
+                        
+                        if (attempt === maxRetries - 1) {
+                            lastError = error;
+                        } else {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue; // Retry on network error
+                        }
+                    } else {
+                         // Non-network, non-retryable error
+                         lastError = error;
+                    }
+                    break; 
+                }
+            }
+            
+            if (lastError) {
+                 console.error(`Analysis Pipeline Failed: Error: ${lastError.message}`);
+                 throw lastError;
+            }
+            throw new Error(`API call failed after ${maxRetries} retries.`);
+        }
+
+
+        function showMessage(text, isError = true) {
+            elements.messageText.textContent = text;
+            elements.messageBox.className = `fixed top-0 left-0 right-0 p-4 text-center text-white transition-opacity duration-300 z-50 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            elements.messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                elements.messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        function downloadJson(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function getPersonaNames(count) {
+            const keys = Object.keys(personaData);
+            return keys.slice(0, Math.min(count, keys.length));
+        }
+
+        function updateProgress(index, total) {
+            const percentage = total > 0 ? Math.floor((index / total) * 100) : 0;
+            elements.progressPercentage.textContent = `${percentage}%`;
+            elements.progressBar.style.width = `${percentage}%`;
+            elements.progressStatus.textContent = `Processing ${index} of ${total} perspectives...`;
+        }
+
+        function setLoading(isLoading) {
+            running = isLoading;
+            elements.runAnalysisBtn.disabled = isLoading;
+            elements.downloadJsonBtn.disabled = isLoading || allResults.length === 0;
+            elements.topicInput.disabled = isLoading;
+            elements.personaCountInput.disabled = isLoading;
+            elements.delayMsInput.disabled = isLoading;
+            
+            if (isLoading) {
+                elements.btnText.textContent = "Running Analysis...";
+                elements.btnSpinner.classList.remove('hidden');
+                elements.downloadJsonBtn.classList.add('hidden');
+            } else {
+                elements.btnText.textContent = "Run 101-Persona Analysis";
+                elements.btnSpinner.classList.add('hidden');
+                elements.downloadJsonBtn.classList.remove('hidden');
+            }
+        }
+        
+        // --- Core Gemini Functions ---
+
+        async function generateContent(personaName, topic, personaDetails, useGrounding) {
+            const parts = personaDetails.split('|').map(p => p.trim());
+            
+            // Safety check for split data
+            if (parts.length < 3) {
+                 return { text: 'Configuration Error: Persona data is malformed (missing system prompt or user query).', sources: [], status: 'Failed' };
+            }
+
+            const systemPrompt = parts[0];
+            const personaPrompt = parts[2].replace('Prompt:', '').trim();
+            
+            const userQuery = `${personaPrompt.replace('the topic', topic)}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                config: {
+                    temperature: 0.7,
+                    maxOutputTokens: 250
+                }
+            };
+            
+            if (useGrounding) {
+                payload.tools = [{ "google_search": {} }];
+            }
+
+            const url = `${API_URL_BASE}${MODEL_NAME}:generateContent?key=${API_KEY}`;
+            const options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            };
+
+            try {
+                const response = await fetchWithBackoff(url, options);
+                const result = await response.json();
+                
+                const candidate = result.candidates?.[0];
+                // Use textContent for safety initially, then process markdown if successful
+                const text = candidate?.content?.parts?.[0]?.text || 'Error: No content generated.';
+                
+                let sources = [];
+                const groundingMetadata = candidate?.groundingMetadata;
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    sources = groundingMetadata.groundingAttributions
+                        .map(attr => attr.web)
+                        .filter(source => source && source.uri && source.title);
+                }
+
+                return { text, sources, status: 'Completed' };
+            } catch (error) {
+                 // Return the raw error message for display
+                 const errorMessage = error.message.replace(/(\r\n|\n|\r)/gm, " ").substring(0, 500) + '...';
+                 console.error(`Error for ${personaName}:`, errorMessage);
+                 return { text: `Analysis Failed: ${errorMessage}`, sources: [], status: 'Failed' };
+            }
+        }
+
+        async function generatePerspectives() {
+            const topic = elements.topicInput.value.trim();
+            if (!topic) {
+                showMessage("Please enter a topic for analysis.", false);
+                return;
+            }
+
+            // Ensure we don't try to run more personas than we have data for (101 max)
+            const maxCount = Object.keys(personaData).length;
+            const personaCount = Math.min(parseInt(elements.personaCountInput.value) || 1, maxCount);
+            const delayMs = parseInt(elements.delayMsInput.value) || 2000;
+            
+            setLoading(true);
+            elements.analysisResults.innerHTML = '';
+            allResults = [];
+            let completedCount = 0;
+            const personaNames = getPersonaNames(personaCount);
+            const total = personaNames.length;
+
+            // Update the input field value to reflect the actual count being run if it was outside bounds
+            elements.personaCountInput.value = total;
+            
+            const analysisOutput = {
+                topic: topic,
+                timestamp: new Date().toISOString(),
+                settings: { personaCount: total, delayMs, useGrounding: true },
+                results: {}
+            };
+
+            for (let i = 0; i < total; i++) {
+                const personaName = personaNames[i];
+                const personaDetails = personaData[personaName];
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.id = `result-${personaName.replace(/\s/g, '-')}`;
+                resultDiv.className = 'card p-4 result-item border-l-4 border-yellow-500';
+                
+                const contentId = `content-${i}`;
+                const sourcesId = `sources-${i}`;
+
+                resultDiv.innerHTML = `
+                    <p class="font-bold text-lg text-yellow-400">${personaName}: <span class="text-sm font-normal text-slate-400">(Running...)</span></p>
+                    <div class="text-slate-300 mt-2 text-sm" id="${contentId}">
+                        <div class="spinner inline-block"></div> Fetching perspective...
+                    </div>
+                    <div class="mt-2 text-xs text-slate-500 hidden" id="${sourcesId}"></div>
+                `;
+                elements.analysisResults.appendChild(resultDiv);
+                
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+                updateProgress(i, total);
+
+                const result = await generateContent(personaName, topic, personaDetails, true);
+                
+                completedCount++;
+
+                // --- UI Update with improved safety ---
+                const statusColor = result.status === 'Completed' ? 'blue' : 'red';
+                resultDiv.classList.remove('border-yellow-500');
+                // This class is now safelisted in the hidden div at the top of the body
+                resultDiv.classList.add(`border-${statusColor}-500`); 
+                
+                const statusText = result.status === 'Completed' ? '' : ` (${result.status})`;
+
+                // This text class is also safelisted
+                resultDiv.querySelector('p').innerHTML = `
+                    <span class="font-bold text-lg text-${statusColor}-400">${personaName}</span>
+                    <span class="text-sm font-normal text-slate-400">${statusText}</span>
+                `;
+                
+                const contentEl = document.getElementById(contentId);
+                
+                if (result.status === 'Completed') {
+                    // Only process markdown if the result was a successful API response
+                    contentEl.innerHTML = result.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                } else {
+                    // Set raw error text using textContent to prevent HTML injection/breaking
+                    contentEl.textContent = result.text;
+                }
+                
+                contentEl.classList.remove('text-sm');
+                
+                const sourcesEl = document.getElementById(sourcesId);
+                if (result.sources && result.sources.length > 0) {
+                    sourcesEl.classList.remove('hidden');
+                    sourcesEl.innerHTML = '<strong>Sources:</strong> ' + result.sources.map(s => 
+                        `<a href="${s.uri}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${s.title.substring(0, 40)}...</a>`
+                    ).join(' | ');
+                }
+
+                // Collect result for final JSON download
+                analysisOutput.results[personaName] = {
+                    analysis: result.text,
+                    sources: result.sources,
+                    status: result.status,
+                    systemInstruction: personaDetails.split('|')[0].trim()
+                };
+                
+                if (i < total - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                }
+            }
+
+            updateProgress(total, total);
+            elements.progressStatus.textContent = `Analysis Complete: ${completedCount} of ${total} perspectives generated.`;
+            setLoading(false);
+
+            allResults = analysisOutput;
+            showMessage("Analysis complete!", false);
+        }
+
+        // --- Initialization and Event Handlers ---
+
+        function initializeApp() {
+            // Set initial topic and persona count based on the embedded data
+            elements.topicInput.value = "The societal and technical friction points of a large-scale, 101-persona AI system running concurrent web-grounded analyses.";
+            elements.personaCountInput.value = Object.keys(personaData).length;
+        }
+
+
+        window.onload = () => {
+            initializeApp();
+
+            elements.runAnalysisBtn.addEventListener('click', generatePerspectives);
+
+            elements.downloadJsonBtn.addEventListener('click', () => {
+                if (allResults && Object.keys(allResults.results).length > 0) {
+                    downloadJson(allResults, `emg-analysis-report-${new Date().toISOString().substring(0, 10)}.json`);
+                } else {
+                    showMessage("No analysis results to download.", false);
+                }
+            });
+        };
+
+    </script>
+</body>
+</html>
