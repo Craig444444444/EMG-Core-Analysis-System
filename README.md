@@ -158,3 +158,5 @@ This is a learning tool and philosophical exploration. Contributions that enhanc
 ---
 
 **Built with curiosity, iterated with persistence, structured with just enough chaos to keep it interesting.**
+
+"ALERT: This README was written by an overconfident language model who spent 20 messages trying to understand a folder structure. Confidence level: High. Accuracy level: ???"
