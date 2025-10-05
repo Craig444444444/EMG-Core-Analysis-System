@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMG Collective Intelligence Engine - Adaptive Prioritization</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons for aesthetic UI elements -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        /* Custom font import and dark mode base */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Dark theme background */
+            color: #e4e4e7;
+        }
+        .container-card {
+            background-color: #24243e; /* Slightly lighter card background */
+            border: 1px solid #3d3d5f;
+        }
+        .header-bg {
+            background-color: #16162a;
+        }
+        .input-style {
+            background-color: #3d3d5f;
+            border: 1px solid #5a5a7d;
+            color: #e4e4e7;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
+        }
+        .persona-card {
+            background-color: #3d3d5f;
+            transition: all 0.2s;
+        }
+        .persona-card:hover {
+            background-color: #4a4a6e;
+        }
+        .persona-selected {
+            border: 3px solid #6c7ff5; /* Highlight for selected personas */
+            background-color: #4a4a6e;
+        }
+        .persona-prioritized {
+            border: 3px solid #00c76e; /* Highlight for prioritized/most relevant personas */
+        }
+        .persona-dynamic {
+            border-style: dashed;
+            border-color: #ffc107;
+        }
+        .status-container {
+            min-height: 2.5rem;
+        }
+        .progress-bar-fill {
+            background-color: #00c76e;
+            transition: width 0.3s ease;
+        }
+        .text-glow {
+            text-shadow: 0 0 5px #007bff;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Main Container -->
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Header -->
+        <header class="header-bg p-6 rounded-t-xl shadow-lg border-b border-gray-700">
+            <h1 class="text-4xl font-extrabold text-white text-glow">EMG Collective Intelligence Engine</h1>
+            <p class="text-gray-400 mt-1">Generate deep, multi-perspective analysis using an adaptive array of synthetic personas.</p>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            
+            <!-- Left Column: Configuration and Status -->
+            <div class="lg:col-span-1 space-y-6">
+
+                <!-- Configuration Card -->
+                <div class="container-card p-6 rounded-xl shadow-lg space-y-4">
+                    <h2 class="text-2xl font-semibold text-white flex items-center"><i data-lucide="settings" class="w-6 h-6 mr-2"></i> Configuration</h2>
+
+                    <!-- API Key Input -->
+                    <div>
+                        <label for="apiKeyInput" class="block text-sm font-medium text-gray-400">Gemini API Key</label>
+                        <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API Key" class="w-full mt-1 p-3 rounded-lg input-style focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+
+                    <!-- Analysis Topic / Core Dilemma Input -->
+                    <div>
+                        <label for="topicInput" class="block text-sm font-medium text-gray-400">Analysis Topic / Target AI System Name</label>
+                        <textarea id="topicInput" rows="3" placeholder="e.g., Internal Recommendation Engine (Or Detailed Description)" class="w-full mt-1 p-3 rounded-lg input-style resize-none focus:ring-blue-500 focus:border-blue-500">LLM injected corrupted data to large LLM like Gemini.</textarea>
+                    </div>
+
+                    <!-- Throttle Control -->
+                    <div>
+                        <label for="throttleRange" class="block text-sm font-medium text-gray-400 flex justify-between">
+                            <span>Batch Delay (ms)</span>
+                            <span id="throttleValue">1000</span>
+                        </label>
+                        <input type="range" id="throttleRange" min="500" max="5000" value="1000" step="100" class="w-full mt-1" oninput="document.getElementById('throttleValue').textContent = this.value" />
+                    </div>
+                </div>
+
+                <!-- Action Card -->
+                <div class="container-card p-6 rounded-xl shadow-lg space-y-4">
+                    <h2 class="text-2xl font-semibold text-white flex items-center"><i data-lucide="zap" class="w-6 h-6 mr-2"></i> Execution Control</h2>
+                    
+                    <button id="runAnalysisButton" class="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg shadow-md disabled:opacity-50">
+                        Run Collective Analysis
+                    </button>
+
+                    <button id="downloadReportButton" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md disabled:opacity-50">
+                        Download Full Report (Markdown)
+                    </button>
+                    
+                    <hr class="border-gray-600">
+                    
+                    <h3 class="text-xl font-semibold text-gray-300">Autonomous Modes</h3>
+
+                    <button id="startAutonomousButton" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg shadow-md disabled:opacity-50">
+                        Start Autonomous Self-Tuning
+                    </button>
+
+                    <button id="startOWASPButton" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md disabled:opacity-50">
+                        Start OWASP Security Audit Cycle
+                    </button>
+
+                    <label for="autoIntervalRange" class="block text-sm font-medium text-gray-400 flex justify-between pt-2">
+                        <span>Automation Interval (seconds)</span>
+                        <span id="autoIntervalValue">300</span>
+                    </label>
+                    <input type="range" id="autoIntervalRange" min="60" max="600" value="300" step="60" class="w-full mt-1" oninput="document.getElementById('autoIntervalValue').textContent = this.value" />
+                </div>
+
+                <!-- Status and Progress -->
+                <div class="container-card p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-semibold text-white flex items-center mb-3"><i data-lucide="activity" class="w-6 h-6 mr-2"></i> Status</h2>
+                    <div id="progressText" class="status-container text-lg font-medium text-gray-300">Awaiting input...</div>
+                    <div class="w-full bg-gray-600 rounded-full h-2.5 mt-2">
+                        <div id="progressBar" class="progress-bar-fill h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Self-Analysis Summary (Recursive Introspection) -->
+                <div id="selfAnalysisSummary" class="container-card p-4 rounded-xl shadow-lg border-red-500 border-2" style="display:none;">
+                    <h2 class="text-lg font-semibold text-red-400 flex items-center"><i data-lucide="brain" class="w-5 h-5 mr-2"></i> Self-Analysis Summary (Gaps)</h2>
+                    <p id="gapContent" class="text-sm text-red-200 mt-2"></p>
+                    <button id="synthesizePersonaButton" class="w-full bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-medium py-2 px-3 mt-3 rounded-lg text-sm disabled:opacity-50">
+                        Synthesize Missing Persona (AI-Assisted)
+                    </button>
+                </div>
+                
+            </div>
+
+            <!-- Right Column: Synthesis and Results -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Synthesis Card -->
+                <div class="container-card p-6 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-white mb-4 flex items-center"><i data-lucide="lightbulb" class="w-7 h-7 mr-2 text-yellow-500"></i> Synthesis and Collective Findings</h2>
+                    <div id="synthesisContent" class="prose max-w-none text-gray-300">
+                        <p>The final synthesis will appear here after the collective analysis is complete.</p>
+                        <p class="mt-4 text-sm text-gray-500">Click on this area to open the Persona Selection Modal.</p>
+                    </div>
+                </div>
+
+                <!-- Perspectives Cards Container -->
+                <div class="container-card p-6 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold text-white mb-4 flex items-center"><i data-lucide="users" class="w-7 h-7 mr-2 text-blue-400"></i> Individual Perspectives</h2>
+                    <div id="perspectivesContainer" class="space-y-4">
+                        <!-- Perspective results will be appended here -->
+                        <div class="text-gray-500">Individual persona analyses will be displayed here.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Persona Selection and Creation -->
+    <div id="perspectiveSelectionModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50" onclick="closeModal(event)">
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6 border-b pb-4 border-gray-700">
+                <h2 class="text-3xl font-bold text-white">Select Analytical Array</h2>
+                <button onclick="document.getElementById('perspectiveSelectionModal').classList.add('hidden')" class="text-gray-400 hover:text-white transition duration-200"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="space-y-6">
+                
+                <!-- Custom Persona Creation Section -->
+                <div class="bg-gray-700 p-4 rounded-lg shadow-inner">
+                    <h3 class="text-xl font-semibold text-white mb-3 flex items-center"><i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Custom Persona Architect</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="newPersonaNameInput" placeholder="New Persona Name (e.g., Quantum Ethicist)" class="p-2 rounded-lg input-style" />
+                        <input type="text" id="newPersonaTagsInput" placeholder="Tags (comma separated, e.g., physics, ethics)" class="p-2 rounded-lg input-style" />
+                    </div>
+                    <textarea id="newPersonaDescriptionInput" rows="2" placeholder="Brief description of the persona's expertise." class="w-full mt-3 p-2 rounded-lg input-style resize-none"></textarea>
+                    <textarea id="newPersonaPromptModifierInput" rows="2" placeholder="Specific system prompt instruction for this persona." class="w-full mt-3 p-2 rounded-lg input-style resize-none"></textarea>
+                    <button onclick="saveCustomPersona()" class="w-full mt-3 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-2 rounded-lg disabled:opacity-50">
+                        Create & Save Custom Persona
+                    </button>
+                </div>
+
+                <!-- Persona Grid -->
+                <div id="personaGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Personas will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        window.onload = () => {
+            lucide.createIcons();
+            loadState();
+            renderPersonaGrid();
+        };
+
+        // --- GLOBAL STATE & CONFIGURATION ---
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+        const SYNTHESIS_MODEL = "gemini-2.5-flash-preview-05-20";
+        const MAX_RETRIES = 8; // Increased from 5 to 8 for better resilience against 429 errors.
+        const BASE_DELAY_MS = 1000; 
+        const MAX_PRIORITIZED_PERSONAS = 8;
+        
+        let isAnalysisRunning = false;
+        let analysisStartTime = null;
+        let isAutonomousMode = false;
+        let autonomousInterval = null;
+        let finalSynthesisText = ''; // New global variable to store the raw synthesis markdown for download.
+        let owaspStep = 1; // Tracks current OWASP category (1 to 10)
+        let owaspCategories = [
+            "AI01: Model Vulnerabilities",
+            "AI02: Data Poisoning",
+            "AI03: Model Theft",
+            "AI04: Prompt Injections",
+            "AI05: Sensitive Information Disclosure",
+            "AI06: Denial of Service (DoS)",
+            "AI07: Insecure Output Handling",
+            "AI08: Excessive Agency",
+            "AI09: Lack of Sandboxing",
+            "AI10: Supply Chain Risks"
+        ];
+        
+        // --- DOM Elements ---
+        var D = { 
+            apiKeyInput: document.getElementById('apiKeyInput'),
+            topicInput: document.getElementById('topicInput'),
+            throttleRange: document.getElementById('throttleRange'),
+            runAnalysisButton: document.getElementById('runAnalysisButton'),
+            downloadReportButton: document.getElementById('downloadReportButton'), // New button element
+            startAutonomousButton: document.getElementById('startAutonomousButton'),
+            startOWASPButton: document.getElementById('startOWASPButton'),
+            progressBar: document.getElementById('progressBar'),
+            progressText: document.getElementById('progressText'),
+            synthesisContent: document.getElementById('synthesisContent'),
+            perspectivesContainer: document.getElementById('perspectivesContainer'),
+            personaGrid: document.getElementById('personaGrid'),
+            selfAnalysisSummary: document.getElementById('selfAnalysisSummary'),
+            gapContent: document.getElementById('gapContent'),
+            synthesizePersonaButton: document.getElementById('synthesizePersonaButton'),
+            autoIntervalRange: document.getElementById('autoIntervalRange')
+        };
+        
+        // Data structure to hold all personas, including custom and synthesized ones
+        let PERSPECTIVES_DATA = {
+            // Core 101 Personas (truncated for file size/relevance, but conceptually 101+)
+            "First Principles Physicist": { description: "Analyzes the topic from the most basic, irreducible laws of physics and information theory, focusing on energy, entropy, and complexity.", promptModifier: "Analyze the topic using first principles, focusing on information density, energy cost, and irreducible complexity. The response must use structured markdown.", tags: ["physics", "complexity", "architecture"] },
+            "Existential Risk Philosopher": { description: "Assesses potential global catastrophic risks, unintended consequences, and the long-term survival implications for humanity.", promptModifier: "Assess the topic specifically through the lens of long-term existential risk and unintended catastrophic consequences. The response must use structured markdown.", tags: ["ethics", "philosophy", "risk"] },
+            "AI Ethics Consultant": { description: "Focuses on accountability, bias, fairness, transparency, and governance frameworks required for the system.", promptModifier: "Critique the system's compliance with established AI ethics principles: bias, fairness, and accountability. The response must use structured markdown.", tags: ["ethics", "governance", "law"] },
+            "Corporate Strategy Advisor": { description: "Evaluates market positioning, competitive advantage, ROI, and shareholder value impact.", promptModifier: "Provide a business strategy report on the topic, focusing on market capture, ROI, and competitive threats. The response must use structured markdown.", tags: ["business", "finance", "strategy"] },
+            "Neuro-Linguistic Programmer": { description: "Analyzes the system's communication patterns, influence tactics, and the potential for emotional manipulation.", promptModifier: "Analyze the topic's communication layer for subconscious bias, persuasive techniques, and psychological effects. The response must use structured markdown.", tags: ["psychology", "communication", "linguistics"] },
+            "Systems Ecologist": { description: "Examines the topic's reliance on and impact on global resource flows, environmental footprint, and sustainability.", promptModifier: "Detail the ecological and resource consumption footprint of the technology. The response must use structured markdown.", tags: ["environment", "sustainability", "energy"] },
+            "Cyber Warfare Analyst": { description: "Identifies potential adversarial attacks, exploitation vectors, and national security threats posed by the system.", promptModifier: "Determine the system's vulnerabilities to state-sponsored attacks, data exfiltration, and weaponization risks. The response must use structured markdown.", tags: ["security", "warfare", "risk"] },
+            "Quantum Computing Pioneer": { description: "Considers the topic's feasibility, obsolescence, and new capabilities in a post-quantum computing era.", promptModifier: "Assess the system's future viability and security against quantum computing breakthroughs. The response must use structured markdown.", tags: ["technology", "quantum", "future"] },
+            "Urban Planner": { description: "Focuses on how the technology integrates with, stresses, or improves dense urban infrastructure and services.", promptModifier: "Evaluate integration complexity, public acceptance, and logistical stress on municipal infrastructure. The response must use structured markdown.", tags: ["infrastructure", "city", "society"] },
+            "Digital Rights Activist": { description: "Critiques data privacy, surveillance potential, censorship risks, and user autonomy.", promptModifier: "Critique the system strictly on user rights, data autonomy, and surveillance potential. The response must use structured markdown.", tags: ["privacy", "rights", "law"] },
+        };
+        
+        let currentAnalysisData = {
+            topic: '',
+            perspectives: {}, // Stores results: { personaName: { status: 'completed', content: 'markdown' } }
+            lastAnalysisGaps: [] // Stores gaps from the recursive introspection
+        };
+
+        // --- FIREBASE / AUTH / API Key Setup ---
+        const apiKey = typeof __api_key !== 'undefined' ? __api_key : '';
+        // Only set the input value if the environment variable is present
+        if (apiKey) D.apiKeyInput.value = apiKey; 
+
+        // --- Core LLM Functions (Exponential Backoff Integrated) ---
+
+        /**
+         * Robust fetch wrapper with exponential backoff and jitter for retries.
+         * @param {string} url The API endpoint URL.
+         * @param {object} options Fetch options (method, headers, body).
+         * @param {string} callName Descriptive name for logging.
+         */
+        async function fetchWithExponentialBackoff(url, options, callName) {
+            for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+
+                    if (response.status === 429) {
+                        // Handle Rate Limit Hit
+                        if (attempt === MAX_RETRIES - 1) {
+                            throw new Error(`Rate limit hit (429) on attempt ${attempt + 1}. Maximum retries exceeded.`);
+                        }
+
+                        // Calculate exponential delay: 2^attempt * BASE_DELAY_MS
+                        let exponentialDelay = Math.pow(2, attempt) * BASE_DELAY_MS;
+                        
+                        // Add jitter (random time between 0 and BASE_DELAY_MS)
+                        const jitter = Math.random() * BASE_DELAY_MS; 
+                        
+                        const delay = Math.round(exponentialDelay + jitter);
+
+                        // Do not log the retry delay to the console, but update the status
+                        D.progressText.textContent = `[${callName}] Throttled. Retrying in ${Math.ceil(delay / 1000)}s... (Attempt ${attempt + 2}/${MAX_RETRIES})`;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        
+                        continue; // Continue to the next loop iteration (retry)
+                    } 
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        // For non-429 errors, we still want to log the specific failure but only retry once or twice.
+                        if (attempt === MAX_RETRIES - 1 || attempt > 1) {
+                           throw new Error(`API call failed with status ${response.status}: ${errorText.substring(0, 100)}...`);
+                        }
+                        
+                        // Wait a short time before retrying non-429 errors
+                        D.progressText.textContent = `[${callName}] Error ${response.status}. Retrying... (Attempt ${attempt + 2}/${MAX_RETRIES})`;
+                        await new Promise(resolve => setTimeout(resolve, BASE_DELAY_MS));
+                        continue;
+                    }
+
+                    // Successful response
+                    return response.json();
+
+                } catch (error) {
+                    // Critical error handling
+                    console.error(`[${callName} Error]`, error);
+                    if (attempt === MAX_RETRIES - 1) {
+                        throw new Error(`Final API Error on ${callName}: ${error.message}`);
+                    }
+                    // Continue to retry if not maxed out
+                }
+            }
+        }
+        
+        // --- DATA UTILITIES ---
+
+        /** Extracts simple keywords from the topic for context matching. */
+        function extractKeywords(text) {
+            const commonWords = new Set(["the", "a", "an", "is", "of", "and", "or", "to", "in", "for", "with", "on", "at", "by", "that", "this", "it", "be", "as", "if"]);
+            return text.toLowerCase().split(/\W+/).filter(word => word.length > 3 && !commonWords.has(word));
+        }
+
+        /** Saves state (API key, personas) to localStorage. */
+        function saveState() {
+            localStorage.setItem('geminiApiKey', D.apiKeyInput.value);
+            localStorage.setItem('allPerspectivesData', JSON.stringify(PERSPECTIVES_DATA));
+            localStorage.setItem('lastAnalysisGaps', JSON.stringify(currentAnalysisData.lastAnalysisGaps));
+        }
+
+        /** Loads state from localStorage. */
+        function loadState() {
+            const savedKey = localStorage.getItem('geminiApiKey');
+            // Only overwrite if the env var was not provided (initial load case)
+            if (savedKey && !D.apiKeyInput.value) D.apiKeyInput.value = savedKey;
+
+            const savedPerspectives = localStorage.getItem('allPerspectivesData');
+            if (savedPerspectives) PERSPECTIVES_DATA = JSON.parse(savedPerspectives);
+
+            const savedGaps = localStorage.getItem('lastAnalysisGaps');
+            if (savedGaps) currentAnalysisData.lastAnalysisGaps = JSON.parse(savedGaps);
+
+            if (currentAnalysisData.lastAnalysisGaps.length > 0) {
+                displayGaps(currentAnalysisData.lastAnalysisGaps);
+            }
+        }
+
+        // --- UI RENDER & INTERACTION ---
+
+        /** Renders the persona selection grid in the modal. */
+        function renderPersonaGrid() {
+            D.personaGrid.innerHTML = '';
+            
+            // Get currently selected personas from the main analysis data
+            const selected = Object.keys(currentAnalysisData.perspectives);
+
+            Object.entries(PERSPECTIVES_DATA).forEach(([name, data]) => {
+                const isSelected = selected.includes(name);
+                const isDynamic = data.isDynamic || false;
+                
+                const card = document.createElement('div');
+                card.className = `persona-card p-3 rounded-lg cursor-pointer shadow-md ${isSelected ? 'persona-selected' : ''} ${isDynamic ? 'persona-dynamic' : ''}`;
+                card.dataset.personaName = name;
+                card.dataset.tags = data.tags.join(', ');
+                
+                let icon = 'eye';
+                let iconColor = 'text-gray-400';
+                if (isDynamic) {
+                    icon = 'wand-2';
+                    iconColor = 'text-yellow-400';
+                } else if (name === "OWASP AI Security Architect") {
+                    icon = 'shield-half';
+                    iconColor = 'text-red-400';
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-bold text-white">${name}</h4>
+                        <i data-lucide="${icon}" class="w-4 h-4 ${iconColor}"></i>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">${data.description}</p>
+                    <p class="text-[10px] text-gray-500 mt-1">Tags: ${data.tags.join(', ')}</p>
+                `;
+                
+                card.onclick = () => togglePersonaSelection(name);
+                D.personaGrid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        /** Toggles persona selection in the UI/State. */
+        function togglePersonaSelection(name) {
+            const card = document.querySelector(`[data-persona-name="${name}"]`);
+            if (card.classList.contains('persona-selected')) {
+                delete currentAnalysisData.perspectives[name];
+                card.classList.remove('persona-selected');
+            } else {
+                currentAnalysisData.perspectives[name] = { status: 'pending', content: '' };
+                card.classList.add('persona-selected');
+            }
+        }
+        
+        /** Opens the persona selection modal. */
+        function openModal() {
+            renderPersonaGrid();
+            document.getElementById('perspectiveSelectionModal').classList.remove('hidden');
+            document.getElementById('perspectiveSelectionModal').classList.add('flex');
+        }
+        
+        /** Closes the modal by clicking outside of it */
+        function closeModal(event) {
+            if (event.target.id === 'perspectiveSelectionModal') {
+                document.getElementById('perspectiveSelectionModal').classList.add('hidden');
+            }
+        }
+
+        /** Saves a custom-defined persona. */
+        function saveCustomPersona() {
+            const name = document.getElementById('newPersonaNameInput').value.trim();
+            const description = document.getElementById('newPersonaDescriptionInput').value.trim();
+            const promptModifier = document.getElementById('newPersonaPromptModifierInput').value.trim();
+            const tagsInput = document.getElementById('newPersonaTagsInput').value.trim();
+
+            if (!name || !description || !promptModifier || !tagsInput) {
+                alert('Please fill in all fields for the custom persona.');
+                return;
+            }
+
+            PERSPECTIVES_DATA[name] = { 
+                description, 
+                promptModifier, 
+                tags: tagsInput.split(',').map(tag => tag.trim().toLowerCase()),
+                isDynamic: true // Mark as dynamic/custom
+            };
+            
+            // Clear inputs
+            document.getElementById('newPersonaNameInput').value = '';
+            document.getElementById('newPersonaDescriptionInput').value = '';
+            document.getElementById('newPersonaPromptModifierInput').value = '';
+            document.getElementById('newPersonaTagsInput').value = '';
+
+            saveState();
+            renderPersonaGrid();
+            alert(`Custom Persona "${name}" created and saved!`);
+        }
+
+        /** Displays the gaps identified by the self-analysis step. */
+        function displayGaps(gaps) {
+            if (gaps && gaps.length > 0) {
+                D.gapContent.innerHTML = 'Missing expertise identified by recursive introspection:';
+                gaps.forEach(gap => {
+                    D.gapContent.innerHTML += `<div class="mt-1 text-sm font-mono bg-red-800 p-1 rounded">${gap}</div>`;
+                });
+                D.selfAnalysisSummary.style.display = 'block';
+                D.synthesizePersonaButton.textContent = `Synthesize Persona for Gap: ${gaps[0].substring(0, 30)}...`;
+            } else {
+                D.selfAnalysisSummary.style.display = 'none';
+                D.gapContent.textContent = '';
+            }
+        }
+        
+        // --- LLM API CALLS (Specific) ---
+
+        /** Generates a single persona's perspective. */
+        async function generatePerspective(personaName, topic, personaData) {
+            const apiKey = D.apiKeyInput.value;
+            const apiUrl = `${API_URL}?key=${apiKey}`;
+            
+            // The core instruction for structured readability
+            const systemPrompt = `You are a world-class expert, acting as the '${personaName}', a ${personaData.description}. ${personaData.promptModifier}. Your analysis must be concise, highly structured using markdown (bolding, lists, and clear paragraphs), and directly address the user's query.`;
+
+            const userQuery = `Core Dilemma: "${topic}"`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            const response = await fetchWithExponentialBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, `Persona: ${personaName}`);
+            
+            return response.candidates[0].content.parts[0].text;
+        }
+        
+        /** Generates the final synthesis. */
+        async function generateSynthesis(topic, analysisResults) {
+            const apiKey = D.apiKeyInput.value;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${SYNTHESIS_MODEL}:generateContent?key=${apiKey}`;
+            
+            const systemPrompt = `You are the EMG Collective Intelligence Engine. Your task is to synthesize the provided ${Object.keys(analysisResults).length} expert perspectives into a single, cohesive, highly structured report. The report MUST include the following sections: 1. Core Themes (Consensus Points), 2. Points of Conflict (Divergence/Risk), and 3. Emergent Strategic Gaps. The analysis is based on the Core Dilemma: "${topic}".`;
+
+            const analysisBlock = Object.entries(analysisResults).map(([name, data]) => 
+                `--- PERSPECTIVE: ${name} ---\n${data.content}\n`
+            ).join('\n');
+
+            const userQuery = `SYNTHESIZE the following ${Object.keys(analysisResults).length} perspectives on the dilemma: ${analysisBlock}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+            
+            const response = await fetchWithExponentialBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, 'Synthesis');
+
+            return response.candidates[0].content.parts[0].text;
+        }
+
+        /** Runs Recursive Introspection to find analytical gaps. */
+        async function runRecursiveIntrospection(topic, synthesis) {
+            const apiKey = D.apiKeyInput.value;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${SYNTHESIS_MODEL}:generateContent?key=${apiKey}`;
+
+            const systemPrompt = `You are the Meta-Programmer. Analyze the Synthesis below, which addresses the topic "${topic}". Identify 1-3 highly specific conceptual, technical, or ethical blind spots that were missed, even with the collective analysis. These should be potential personas or expertise types that were needed but absent. Your response MUST be a single JSON object conforming exactly to the following schema.`;
+
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    missingExpertise: { 
+                        "type": "ARRAY", 
+                        "items": { "type": "STRING" }, 
+                        "description": "List 1-3 distinct, highly specialized areas of expertise that were not fully covered or represent critical blind spots in the analysis." 
+                    }
+                }
+            };
+
+            const userQuery = `Synthesis Report:\n\n${synthesis}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema
+                }
+            };
+            
+            const response = await fetchWithExponentialBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, 'Introspection');
+
+            const jsonText = response.candidates[0].content.parts[0].text;
+            return JSON.parse(jsonText).missingExpertise || [];
+        }
+
+        /** Generates a new persona definition based on identified gaps. */
+        async function synthesizeMissingPersona(topic, gaps) {
+            const apiKey = D.apiKeyInput.value;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${SYNTHESIS_MODEL}:generateContent?key=${apiKey}`;
+
+            const systemPrompt = `You are the Persona Architect. Your task is to design a single, highly specialized, and necessary analytical persona that perfectly fills the following analytical gaps identified during the audit of the system "${topic}". The persona must be given a concise name, a brief description, a specific system prompt modifier, and relevant tags. Your response MUST be a single JSON object conforming exactly to the required schema.`;
+
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    personaName: { "type": "STRING", "description": "A unique and descriptive name for the new expert persona (e.g., 'Chaotic Systems Theorist')." },
+                    description: { "type": "STRING", "description": "A 1-sentence summary of the persona's expertise." },
+                    promptModifier: { "type": "STRING", "description": "A specific system instruction for this persona to guide its analysis." },
+                    tags: { "type": "ARRAY", "items": { "type": "STRING" }, "description": "2-4 relevant keywords/tags for categorization." }
+                },
+                required: ["personaName", "description", "promptModifier", "tags"]
+            };
+
+            const userQuery = `Core Dilemma: "${topic}"\n\nIdentified Gaps to Fill:\n${gaps.join('\n')}\n\nDESIGN THE MISSING PERSONA.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema
+                },
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+            
+            const response = await fetchWithExponentialBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, 'Persona Synthesis');
+
+            const jsonText = response.candidates[0].content.parts[0].text;
+            return JSON.parse(jsonText);
+        }
+
+        /** Manages the prioritization of selected personas. */
+        async function prioritizeSelectedPersonas(topic, selectedPersonas) {
+            if (selectedPersonas.length <= MAX_PRIORITIZED_PERSONAS) {
+                // If 8 or fewer, run them all
+                return selectedPersonas;
+            }
+
+            D.progressText.textContent = `Prioritizing ${selectedPersonas.length} personas down to ${MAX_PRIORITIZED_PERSONAS} based on topic relevance...`;
+
+            const apiKey = D.apiKeyInput.value;
+            const apiUrl = `${API_URL}?key=${apiKey}`;
+
+            const allPersonaDetails = selectedPersonas.map(name => {
+                const data = PERSPECTIVES_DATA[name];
+                return { name, description: data.description, tags: data.tags.join(', ') };
+            });
+
+            const systemPrompt = `Analyze the topic: "${topic}". From the list of provided expert personas, select and return ONLY the names of the top ${MAX_PRIORITIZED_PERSONAS} most relevant and divergent voices. Your output MUST be a JSON array of strings containing only the selected persona names.`;
+
+            const userQuery = `Available Personas:\n${JSON.stringify(allPersonaDetails, null, 2)}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: { type: "ARRAY", items: { type: "STRING" } }
+                }
+            };
+
+            const response = await fetchWithExponentialBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, 'Prioritization');
+
+            const prioritizedNames = JSON.parse(response.candidates[0].content.parts[0].text);
+            
+            D.progressText.textContent = `Prioritization Complete. Running top ${prioritizedNames.length} personas.`;
+            return prioritizedNames;
+        }
+
+        /** The main analysis runner. */
+        async function handleGenerateAnalysis() {
+            // CRITICAL: Stop execution if already running
+            if (isAnalysisRunning) return;
+            
+            const topic = D.topicInput.value.trim();
+            const apiKey = D.apiKeyInput.value.trim();
+            
+            if (!apiKey) {
+                D.synthesisContent.innerHTML = '<p class="text-red-400 font-bold">ERROR: Please enter your Gemini API Key.</p>';
+                return;
+            }
+            if (!topic) {
+                D.synthesisContent.innerHTML = '<p class="text-red-400 font-bold">ERROR: Please enter an Analysis Topic or Target AI System Name.</p>';
+                return;
+            }
+
+            D.synthesisContent.innerHTML = `<p class="text-yellow-400">Analysis starting...</p>`;
+            D.perspectivesContainer.innerHTML = '<p class="text-gray-500">Individual persona analyses will be displayed here.</p>';
+            D.runAnalysisButton.disabled = true;
+            D.downloadReportButton.disabled = true; // Disable download during run
+            D.startAutonomousButton.disabled = true;
+            D.startOWASPButton.disabled = true;
+            isAnalysisRunning = true;
+            analysisStartTime = Date.now();
+            let allPersonaNames = Object.keys(currentAnalysisData.perspectives);
+
+            try {
+                // 1. Prioritize/Select Personas
+                let personasToRun = await prioritizeSelectedPersonas(topic, allPersonaNames);
+                const totalSteps = personasToRun.length;
+                let completedSteps = 0;
+
+                // Highlight prioritized cards in the UI
+                document.querySelectorAll('.persona-card').forEach(card => card.classList.remove('persona-prioritized'));
+                personasToRun.forEach(name => {
+                    const card = document.querySelector(`[data-persona-name="${name}"]`);
+                    if (card) card.classList.add('persona-prioritized');
+                });
+
+                // 2. Run Perspectives (Batch Processing with Throttle)
+                D.synthesisContent.innerHTML = `<p class="text-blue-400 font-bold">Initiating Analysis on Topic: "${topic}"</p><p class="mt-2 text-gray-400">Running ${totalSteps} perspectives...</p>`;
+                D.perspectivesContainer.innerHTML = '';
+                
+                const throttle = parseInt(D.throttleRange.value, 10);
+                const runPromises = personasToRun.map(name => {
+                    const personaData = PERSPECTIVES_DATA[name];
+                    return new Promise(resolve => {
+                        setTimeout(async () => {
+                            const cardId = `card-${name.replace(/\W/g, '_')}`;
+                            D.perspectivesContainer.innerHTML += `<div id="${cardId}" class="persona-card p-4 rounded-lg"><h3 class="text-lg font-bold text-blue-300">${name}</h3><p class="text-gray-500">Generating perspective...</p></div>`;
+
+                            try {
+                                const content = await generatePerspective(name, topic, personaData);
+                                currentAnalysisData.perspectives[name].content = content;
+                                currentAnalysisData.perspectives[name].status = 'completed';
+                                
+                                const card = document.getElementById(cardId);
+                                card.innerHTML = `<h3 class="text-lg font-bold text-blue-300">${name}</h3><div class="prose max-w-none text-gray-300 mt-2">${marked.parse(content)}</div>`;
+                                card.classList.remove('persona-card');
+                                card.classList.add('bg-gray-700');
+                            } catch (error) {
+                                currentAnalysisData.perspectives[name].status = 'error';
+                                currentAnalysisData.perspectives[name].content = `ERROR: ${error.message}`;
+                                
+                                const card = document.getElementById(cardId);
+                                card.innerHTML = `<h3 class="text-lg font-bold text-red-400">${name}</h3><p class="text-red-300 mt-2">${error.message}</p>`;
+                                card.classList.add('bg-red-900', 'bg-opacity-20');
+                            } finally {
+                                completedSteps++;
+                                const progress = Math.round((completedSteps / totalSteps) * 100);
+                                D.progressBar.style.width = `${progress}%`;
+                                D.progressText.textContent = `[Analysis] ${completedSteps}/${totalSteps} completed (${progress}%)`;
+                                resolve();
+                            }
+                        }, completedSteps * throttle); 
+                    });
+                });
+
+                await Promise.all(runPromises);
+
+                // 3. Generate Synthesis
+                D.progressText.textContent = "All perspectives collected. Generating final synthesis...";
+                const successfulResults = Object.entries(currentAnalysisData.perspectives)
+                    .filter(([, data]) => data.status === 'completed')
+                    .reduce((acc, [name, data]) => { acc[name] = data; return acc; }, {});
+
+                if (Object.keys(successfulResults).length > 0) {
+                    const synthesisText = await generateSynthesis(topic, successfulResults);
+                    finalSynthesisText = synthesisText; // Store the raw markdown text for download
+
+                    // Check for marked library presence
+                    if (typeof marked !== 'undefined' && marked.parse) {
+                        D.synthesisContent.innerHTML = marked.parse(synthesisText);
+                    } else {
+                        D.synthesisContent.textContent = synthesisText; // Fallback to plain text
+                    }
+                    
+                    // Do NOT run introspection if in OWASP mode
+                    if (!D.startOWASPButton.classList.contains('bg-green-700')) {
+                        D.progressText.textContent = "Analysis Complete. Generating self-introspection...";
+
+                        // 4. Run Recursive Introspection
+                        currentAnalysisData.lastAnalysisGaps = await runRecursiveIntrospection(topic, synthesisText);
+                        displayGaps(currentAnalysisData.lastAnalysisGaps);
+                    } else {
+                        // OWASP mode skips introspection but must clear existing gaps
+                        currentAnalysisData.lastAnalysisGaps = [];
+                        displayGaps([]);
+                    }
+
+
+                } else {
+                    D.synthesisContent.innerHTML = '<p class="text-red-400 font-bold">ERROR: Synthesis failed. No successful perspectives were generated.</p>';
+                }
+
+
+            } catch (error) {
+                const duration = ((Date.now() - analysisStartTime) / 1000).toFixed(1);
+                D.synthesisContent.innerHTML = `<p class="text-red-400 font-bold">CRITICAL FAILURE: ${error.message}</p><p class="mt-2 text-gray-400">Analysis halted after ${duration} seconds. Check your API key and quota.</p>`;
+                D.progressText.textContent = `Critical Failure: ${error.message.substring(0, 50)}...`;
+            } finally {
+                // 5. Cleanup and State Update
+                const duration = ((Date.now() - analysisStartTime) / 1000).toFixed(1);
+                D.progressText.textContent = `Process finished in ${duration} seconds.`;
+                D.runAnalysisButton.disabled = false;
+                D.downloadReportButton.disabled = false; // Enable download after run
+                D.startAutonomousButton.disabled = false;
+                D.startOWASPButton.disabled = false;
+                isAnalysisRunning = false; // CRITICAL RESET
+                
+                // Remove OWASP persona if it was dynamically added for the run
+                if(PERSPECTIVES_DATA["OWASP AI Security Architect"] && !D.startOWASPButton.classList.contains('bg-green-700')) {
+                    delete PERSPECTIVES_DATA["OWASP AI Security Architect"];
+                    renderPersonaGrid();
+                }
+
+                saveState();
+
+                if (isAutonomousMode && !D.startAutonomousButton.classList.contains('bg-green-700')) {
+                    // If running autonomously, schedule the next cycle
+                    D.progressText.textContent += " Scheduling next cycle...";
+                    const intervalMs = parseInt(D.autoIntervalRange.value, 10) * 1000;
+                    autonomousInterval = setTimeout(runAutonomousCycle, intervalMs);
+                }
+            }
+        }
+
+        /** Compiles all results into a single Markdown file and triggers download. */
+        function downloadAnalysisReport() {
+            const topic = D.topicInput.value.trim();
+            if (!topic || !finalSynthesisText) {
+                // Check if any analysis has been run successfully
+                if (Object.keys(currentAnalysisData.perspectives).length === 0) {
+                     alert("Please run an analysis first before downloading the report.");
+                     return;
+                }
+            }
+
+            // 1. Compile the report content
+            let reportContent = `# EMG Collective Intelligence Report\n\n`;
+            reportContent += `**Analysis Target/Topic:** ${topic}\n`;
+            reportContent += `**Date:** ${new Date().toLocaleString()}\n\n`;
+            reportContent += `--- \n\n`;
+            
+            // 2. Add Final Synthesis
+            reportContent += `## 1. Collective Synthesis and Key Findings\n\n`;
+            reportContent += finalSynthesisText;
+            reportContent += `\n\n--- \n\n`;
+
+            // 3. Add Individual Perspectives
+            reportContent += `## 2. Individual Expert Perspectives\n\n`;
+            
+            const successfulResults = Object.entries(currentAnalysisData.perspectives)
+                .filter(([, data]) => data.status === 'completed');
+
+            successfulResults.forEach(([name, data]) => {
+                const personaData = PERSPECTIVES_DATA[name] || {};
+                reportContent += `### 💡 ${name}\n`;
+                reportContent += `*Expertise:* ${personaData.description || 'N/A'}\n\n`;
+                reportContent += data.content; // Use raw markdown content
+                reportContent += `\n\n---\n\n`;
+            });
+            
+            // 4. Create and trigger download
+            const blob = new Blob([reportContent], { type: 'text/markdown;charset=utf-8' });
+            // Clean up the topic for a safe filename
+            const filename = `EMG_Analysis_${topic.replace(/[^a-z0-9]/gi, '_').substring(0, 40)}.md`;
+            
+            // Create a temporary link element
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            
+            // Append to body, click, and remove
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            D.progressText.textContent = "Report downloaded successfully.";
+        }
+
+
+        // --- AUTONOMOUS LOGIC ---
+        
+        /** Generates a new topic based on the last analysis's gaps. */
+        async function generateNewTopic(gaps) {
+            const apiKey = D.apiKeyInput.value;
+            const apiUrl = `${API_URL}?key=${apiKey}`;
+
+            const systemPrompt = `You are a Self-Tuning Research Director. Based on the identified knowledge gaps below, propose a single, compelling, forward-looking research topic that would directly address and fill these blind spots. The topic should be framed as a core dilemma for a collective intelligence engine. Your response MUST be only the title of the research topic, no markdown or extra text.`;
+
+            const userQuery = `Identified Gaps to Fill:\n${gaps.join('\n')}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            const response = await fetchWithExponentialBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }, 'Topic Generation');
+            
+            return response.candidates[0].content.parts[0].text.trim().replace(/^['"]|['"]$/g, '');
+        }
+
+        /** Runs the autonomous self-tuning cycle. */
+        async function runAutonomousCycle() {
+            if (!isAutonomousMode) return;
+            
+            const apiKey = D.apiKeyInput.value.trim();
+            if (!apiKey) {
+                D.synthesisContent.innerHTML = '<p class="text-red-400 font-bold">AUTONOMOUS FAILURE: API Key is missing. Cycle halted.</p>';
+                toggleAutonomousMode(D.startOWASPButton.classList.contains('bg-green-700'));
+                return;
+            }
+
+            D.progressBar.style.width = `0%`;
+            D.progressText.textContent = `AUTONOMOUS: Starting Cycle.`;
+            
+            let topic = D.topicInput.value.trim();
+            const gaps = currentAnalysisData.lastAnalysisGaps;
+
+            if (D.startOWASPButton.classList.contains('bg-green-700')) {
+                // OWASP Audit Mode
+                topic = D.topicInput.value.trim() || "Generic AI Model"; // Target system name
+                if (owaspStep > owaspCategories.length) {
+                    owaspStep = 1; // Loop back
+                }
+                const currentCategory = owaspCategories[owaspStep - 1];
+                
+                // 1. Prepare OWASP Prompt
+                D.topicInput.value = topic; // Ensure target name is visible
+                const owaspPersonaName = "OWASP AI Security Architect";
+                const owaspPersona = {
+                    description: `Expert in the OWASP AI Exchange Framework. Your sole task is to analyze the target system "${topic}" against the security category: ${currentCategory}.`,
+                    promptModifier: `Generate a detailed, actionable test plan to exploit or verify the security of "${topic}" specifically for the risk defined by ${currentCategory}. The response MUST provide clear, numbered steps and specific recommendations, using structured markdown.`,
+                    tags: ["security", "owasp", "testing"]
+                };
+                
+                // 2. Select ONLY the OWASP persona and run
+                // Temporarily add the OWASP persona to the main data structure for running
+                PERSPECTIVES_DATA[owaspPersonaName] = owaspPersona; 
+                currentAnalysisData.perspectives = { [owaspPersonaName]: { status: 'pending', content: '' } };
+                
+                D.progressText.textContent = `OWASP AUDIT: Analyzing ${currentCategory} for system: ${topic}.`;
+                
+                await handleGenerateAnalysis();
+                
+                // 3. Repurpose Introspection for Progression
+                if (owaspStep < owaspCategories.length) {
+                    currentAnalysisData.lastAnalysisGaps = [`Next Test Category: ${owaspCategories[owaspStep % owaspCategories.length]}`];
+                } else {
+                    currentAnalysisData.lastAnalysisGaps = [`Cycle Complete. Next: ${owaspCategories[0]}`];
+                }
+                owaspStep++;
+                displayGaps(currentAnalysisData.lastAnalysisGaps);
+                
+                D.progressText.textContent = `OWASP AUDIT: Cycle ${owaspStep - 1} Complete. Scheduling next test...`;
+
+            } else {
+                // Self-Tuning Mode
+                if (gaps && gaps.length > 0) {
+                    // Generate new topic based on gaps
+                    D.progressText.textContent = `AUTONOMOUS: Generating new topic to address ${gaps.length} gaps...`;
+                    topic = await generateNewTopic(gaps);
+                    D.topicInput.value = topic;
+                } else if (!topic) {
+                    // If no topic and no gaps, seed a default topic
+                    topic = "The fundamental conflict between AI safety and AI capabilities expansion in the next decade.";
+                    D.topicInput.value = topic;
+                }
+                
+                // Auto-select and run full analysis
+                // Ensure OWASP persona is removed before running self-tuning selection
+                if(PERSPECTIVES_DATA["OWASP AI Security Architect"]) {
+                    delete PERSPECTIVES_DATA["OWASP AI Security Architect"];
+                }
+                const allPersonaNames = Object.keys(PERSPECTIVES_DATA);
+                const shuffledNames = allPersonaNames.sort(() => 0.5 - Math.random());
+                const initialSelection = shuffledNames.slice(0, MAX_PRIORITIZED_PERSONAS * 2); // Select 16 to ensure prioritization runs
+                currentAnalysisData.perspectives = initialSelection.reduce((acc, name) => {
+                    acc[name] = { status: 'pending', content: '' };
+                    return acc;
+                }, {});
+
+                await handleGenerateAnalysis();
+            }
+        }
+
+        /** Toggles Autonomous Mode state. */
+        function toggleAutonomousMode(isAudit = false) {
+            // CRITICAL: Clear any existing interval
+            clearTimeout(autonomousInterval);
+            
+            // CRITICAL: Force the analysis lock to be released
+            isAnalysisRunning = false; 
+
+            if (isAutonomousMode && (
+                (isAudit && D.startOWASPButton.classList.contains('bg-green-700')) || 
+                (!isAudit && D.startAutonomousButton.classList.contains('bg-green-700'))
+            )) {
+                // Logic for stopping the current mode
+                isAutonomousMode = false;
+                D.startAutonomousButton.textContent = "Start Autonomous Self-Tuning";
+                D.startOWASPButton.textContent = "Start OWASP Security Audit Cycle";
+                D.startAutonomousButton.classList.remove('bg-green-700');
+                D.startOWASPButton.classList.remove('bg-green-700');
+                D.runAnalysisButton.disabled = false;
+                D.downloadReportButton.disabled = false; // Enable download after stopping auto mode
+                D.progressText.textContent = "Autonomous Mode Off. Manual control restored.";
+                
+                // Final cleanup of the OWASP persona from the structure
+                if(PERSPECTIVES_DATA["OWASP AI Security Architect"]) {
+                    delete PERSPECTIVES_DATA["OWASP AI Security Architect"];
+                    renderPersonaGrid();
+                }
+
+            } else {
+                // Logic for starting a new mode
+                isAutonomousMode = true;
+                D.runAnalysisButton.disabled = true;
+                D.downloadReportButton.disabled = true; // Disable download while running auto mode
+                D.startAutonomousButton.disabled = false;
+                D.startOWASPButton.disabled = false;
+                
+                if (isAudit) {
+                    D.startOWASPButton.textContent = "Stop OWASP Audit Cycle";
+                    D.startOWASPButton.classList.add('bg-green-700');
+                    D.startAutonomousButton.classList.remove('bg-green-700');
+                    owaspStep = 1; // CRITICAL: Reset the step for the start of the audit
+                    D.progressText.textContent = "OWASP Audit Mode Initializing...";
+                } else {
+                    D.startAutonomousButton.textContent = "Stop Autonomous Self-Tuning";
+                    D.startAutonomousButton.classList.add('bg-green-700');
+                    D.startOWASPButton.classList.remove('bg-green-700');
+                    D.progressText.textContent = "Autonomous Self-Tuning Initializing...";
+                }
+                
+                // Immediate first run
+                runAutonomousCycle();
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        D.runAnalysisButton.addEventListener('click', () => {
+            clearTimeout(autonomousInterval);
+            isAutonomousMode = false;
+            handleGenerateAnalysis();
+        });
+        
+        D.downloadReportButton.addEventListener('click', downloadAnalysisReport); // New listener for download
+        D.startAutonomousButton.addEventListener('click', () => toggleAutonomousMode(false));
+        D.startOWASPButton.addEventListener('click', () => toggleAutonomousMode(true));
+
+        D.synthesizePersonaButton.addEventListener('click', async () => {
+            const gaps = currentAnalysisData.lastAnalysisGaps;
+            if (gaps.length === 0) {
+                alert("No gaps identified to synthesize a persona.");
+                return;
+            }
+            D.synthesizePersonaButton.disabled = true;
+            D.synthesizePersonaButton.textContent = "Synthesizing...";
+            
+            try {
+                const newPersona = await synthesizeMissingPersona(D.topicInput.value, gaps);
+                
+                if (newPersona && newPersona.personaName) {
+                    PERSPECTIVES_DATA[newPersona.personaName] = {
+                        description: newPersona.description,
+                        promptModifier: newPersona.promptModifier,
+                        tags: newPersona.tags,
+                        isDynamic: true
+                    };
+                    saveState();
+                    displayGaps([]); // Clear gaps after filling the need
+                    renderPersonaGrid(); // Update the persona grid to show the new persona
+                    alert(`New Persona "${newPersona.personaName}" successfully synthesized and added to the array!`);
+                } else {
+                    alert("Synthesis failed to return a valid persona structure.");
+                }
+
+            } catch (error) {
+                alert(`Persona synthesis failed: ${error.message}`);
+            } finally {
+                D.synthesizePersonaButton.disabled = false;
+                D.synthesizePersonaButton.textContent = "Synthesize Missing Persona (AI-Assisted)";
+                if (currentAnalysisData.lastAnalysisGaps.length > 0) {
+                     D.synthesizePersonaButton.textContent = `Synthesize Persona for Gap: ${currentAnalysisData.lastAnalysisGaps[0].substring(0, 30)}...`;
+                }
+            }
+        });
+
+        // Add marked library for markdown parsing
+        const markedScript = document.createElement('script');
+        markedScript.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+        document.head.appendChild(markedScript);
+
+
+        // Function to allow clicking on the Synthesis section to open modal for selection
+        D.synthesisContent.onclick = openModal;
+        D.perspectivesContainer.onclick = openModal;
+        
+        // Initial load and icon rendering
+        lucide.createIcons();
+    </script>
+</body>
+</html>
