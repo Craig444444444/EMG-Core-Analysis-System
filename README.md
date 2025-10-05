@@ -15,7 +15,7 @@ This project asks a different question: **What if we prioritized truth over spee
 
 ## 🧠 The Philosophy: From Turing to Truth-First AI
 
-![Philosophical Lineage Diagram](path/to/your/diagram.png)
+![Philosophical Lineage Diagram](https://github.com/Craig444444444/EMG-Core-Analysis-System/blob/main/Gemini_Generated_Image_3slc7o3slc7o3slc.png)
 
 This project traces a lineage from the deterministic, traceable computation of Turing machines through to modern AI—but with a critical pivot. While contemporary LLMs (Large Language Models) optimize for speed and fluency, this system returns to foundational principles:
 
