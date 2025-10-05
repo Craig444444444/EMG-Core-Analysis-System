@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMG Core Analysis System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base styles */
+        body, html {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+        }
+        
+        /* Custom Scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; } /* Slate 800 */
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* Slate 600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; } /* Slate 500 */
+        
+        /* Modern Button Styling */
+        .modern-btn {
+            border-radius: 0.75rem;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+        }
+        .modern-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .modern-btn:active {
+            transform: translateY(0);
+        }
+        .modern-btn:disabled {
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        /* Card Styling */
+        .emg-card {
+            background-color: #1e293b; /* Slate 800 */
+            border: 1px solid #334155; /* Slate 700 */
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        /* Input Styling */
+        .emg-input {
+            background-color: #0f172a; /* Slate 900 */
+            border: 1px solid #334155; /* Slate 700 */
+            border-radius: 0.75rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .emg-input:focus {
+            outline: none;
+            border-color: #22d3ee; /* Cyan 400 */
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.3);
+        }
+        .emg-input.border-red-500 {
+             border-color: #ef4444; /* Red 500 */
+        }
+        .emg-input.border-red-500:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4);
+        }
+        
+        /* API Key Toggle Styling */
+        .api-key-wrapper {
+            position: relative;
+        }
+        .api-key-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #94a3b8; /* Slate 400 */
+            transition: color 0.2s;
+        }
+        .api-key-toggle:hover {
+            color: #e2e8f0; /* Slate 200 */
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* Chat Styling */
+        .chat-bubble {
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .chat-bubble-user {
+            background-color: #4338ca; /* Indigo 700 */
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .chat-bubble-model {
+            background-color: #334155; /* Slate 700 */
+            color: #e2e8f0;
+            border-bottom-left-radius: 0.25rem;
+            align-self: flex-start;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <div class="min-h-screen p-4 sm:p-6 lg:p-8 flex flex-col">
+        <main class="flex-grow grid grid-cols-1 lg:grid-cols-10 gap-8 max-w-7xl mx-auto w-full">
+            <!-- Left Control Panel -->
+            <aside class="lg:col-span-3 space-y-8 sticky top-8 self-start">
+                
+                <div class="emg-card p-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <!-- Icon for EMG Core -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12l6 6 6-6V3L12 9Z"/><path d="M12 9 6 3M12 9l6-6M12 9v12"/></svg>
+                        <h1 class="text-3xl font-extrabold text-white tracking-wider">EMG CORE</h1>
+                    </div>
+                    <p class="text-sm text-slate-400 border-b border-slate-700 pb-3 mb-4 font-mono">
+                        100-Persona Collective Intelligence Engine
+                    </p>
+                    
+                    <!-- 3D Visualization Container -->
+                    <div id="gem-container" class="h-64 bg-slate-900 rounded-lg overflow-hidden mb-6 shadow-inner border border-slate-700">
+                        <canvas id="gem-canvas"></canvas>
+                    </div>
+                    
+                    <!-- Status Indicator -->
+                    <div class="text-center mb-4 p-2 rounded-lg border border-slate-700 font-semibold text-sm">
+                        <span id="mode-status" class="text-cyan-400">STATUS: ANALYSIS MODE</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                         <textarea id="topic-input" class="w-full p-4 emg-input text-white resize-none" rows="3" placeholder="> ENTER TOPIC FOR ANALYSIS..."></textarea>
+                         
+                         <!-- API Key Input with Visibility Toggle -->
+                         <div class="api-key-wrapper">
+                             <input type="password" id="api-key-input" class="w-full p-3 emg-input text-white text-sm pr-10" placeholder="> GEMINI API KEY (REQUIRED)">
+                             <span id="api-key-toggle" class="api-key-toggle">
+                                 <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                 <svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M9.9 4.24A9 9 0 0 1 12 3a9.9 9.9 0 0 1 8.2 5.25c.1.25.1.5 0 .75A9.9 9.9 0 0 1 12 15a9 9 0 0 1-8.1-4.24c-.1-.25-.1-.5 0-.75l.2-.5Z"/><path d="m2.1 21.9.3-3.4M21.9 2.1l-3.4.3"/><path d="M12 12 5.1 5.1"/><path d="m2 2 20 20"/><path d="M16.2 12a4.2 4.2 0 0 0-4.2-4.2m-1.7 6.1a4.2 4.2 0 0 0 5.9-5.9"/></svg>
+                             </span>
+                         </div>
+                         
+                         <!-- Brain State Loaders (JSON file) -->
+                         <input type="file" id="brain-state-input" accept=".json" class="hidden">
+                         <button id="brain-state-btn" class="modern-btn bg-purple-600 hover:bg-purple-500 text-white py-2 px-4 text-sm w-full">LOAD BRAIN STATE JSON</button>
+                         <p id="brain-state-status" class="text-xs text-slate-500 font-mono text-center">No brain state loaded</p>
+                         
+                         <!-- Analysis Buttons -->
+                         <div id="analysis-buttons" class="grid grid-cols-2 gap-4 pt-2">
+                            <button id="generate-btn" class="modern-btn bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 col-span-2">EXECUTE ANALYSIS</button>
+                            <button id="start-chat-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium py-3 px-4 col-span-2 text-sm" disabled>INIT COLLECTIVE CHAT</button>
+                         </div>
+                         
+                         <!-- Chat Buttons (hidden initially) -->
+                         <div id="chat-buttons" class="grid grid-cols-2 gap-4 pt-2 hidden">
+                            <button id="send-btn" class="modern-btn bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4">SEND</button>
+                            <button id="exit-chat-btn" class="modern-btn bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 px-4">END CHAT</button>
+                            <button id="clear-chat-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-3 px-4 col-span-2 text-sm">CLEAR HISTORY</button>
+                         </div>
+                         
+                         <!-- Utility Buttons -->
+                         <div class="grid grid-cols-2 gap-4 mt-4">
+                             <button id="json-review-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 text-xs hidden">REVIEW JSON STACK</button>
+                             <button id="copy-all-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 text-xs hidden">COPY ALL DATA</button>
+                         </div>
+                    </div>
+                </div>
+                
+                <!-- Planned Feature Card -->
+                <div class="emg-card p-6">
+                    <h2 class="text-xl font-bold text-white mb-4 border-b border-slate-700 pb-2">:: GITHUB MEMORY CORE ::</h2>
+                    <p id="github-status" class="text-sm text-slate-400 mb-4 break-all font-mono">STATUS: OFFLINE (PLANNED)</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="github-sync-btn" class="modern-btn bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 text-sm" disabled>SYNC MEMORY</button>
+                        <button id="github-settings-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 px-4 text-sm">EDIT SETTINGS</button>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Main Content Area -->
+            <section class="lg:col-span-7 space-y-8 min-h-0">
+                
+                <!-- Analysis View (Default) -->
+                <div id="analysis-view">
+                    <h2 class="text-2xl font-extrabold text-white border-b border-slate-700 pb-2 mb-4">:: 100 PERSPECTIVES ::</h2>
+                    <div id="perspectives-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="emg-card p-5 space-y-3 col-span-full text-center text-slate-400 text-lg">
+                            Enter a topic and your Gemini API Key to begin the 100-persona collective analysis.
+                        </div>
+                    </div>
+                    <div id="synthesis-container" class="space-y-6 mt-6"></div>
+                </div>
+                
+                <!-- Chat View (Hidden initially) -->
+                <div id="chat-view" class="emg-card p-6 h-[80vh] flex flex-col hidden">
+                    <div class="text-xl font-bold border-b border-slate-700 pb-3 mb-4 text-white flex-shrink-0">
+                        COLLECTIVE INTELLIGENCE LOG
+                    </div>
+                    <div id="chat-log" class="text-sm space-y-4 flex-grow overflow-y-auto flex flex-col pr-2"></div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center text-xs text-slate-500 py-6 mt-12">
+            Enhanced by Gemini &copy; 2025
+        </footer>
+    </div>
+    
+    <!-- Modals and Overlays -->
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-slate-900/95 flex items-center justify-center z-50 transition-opacity">
+        <div class="text-center text-white">
+            <div class="w-16 h-16 border-4 border-t-cyan-400 border-r-cyan-400 border-b-slate-700 border-l-slate-700 rounded-full animate-spin mx-auto mb-6"></div>
+            <p id="loading-text" class="text-2xl font-bold text-cyan-400 tracking-widest">:: EXECUTE ::</p>
+        </div>
+    </div>
+    
+    <!-- General Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 max-w-2xl w-full p-8 relative rounded-xl shadow-2xl border border-slate-700">
+            <h2 id="modal-title" class="text-2xl font-bold mb-4 border-b border-slate-700 pb-2 text-white"></h2>
+            <div id="modal-message" class="text-slate-300 max-h-[60vh] overflow-y-auto text-sm"></div>
+            <button id="modal-close-btn" class="modern-btn bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 absolute top-4 right-4 text-sm transition">CLOSE</button>
+        </div>
+    </div>
+    
+    <!-- GitHub Modal (Placeholder for future feature) -->
+    <div id="github-modal" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 max-w-2xl w-full p-8 space-y-5 rounded-xl shadow-2xl border border-slate-700">
+            <h2 class="text-2xl font-bold text-white border-b border-slate-700 pb-2">:: GITHUB MEMORY CONFIG ::</h2>
+            <p class="text-sm text-slate-400">GitHub integration is a planned feature for future versions, allowing for persistent memory states. For now, please use the JSON upload feature.</p>
+            <div class="flex gap-4 pt-4">
+                <button id="github-close-btn" class="modern-btn bg-slate-700 hover:bg-slate-600 text-slate-300 w-full py-3 transition">CLOSE</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        // --- CONFIGURATION & STATE ---
+        // Using gemini-2.5-flash-preview-05-20 for text generation.
+        const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
+        
+        let currentMode = 'analysis';
+        let chatHistory = [];
+        let generatedSynthesisData = null; 
+        let lastAnalysisTopic = null;
+        let brainStateData = null;
+        let isGenerating = false;
+        
+        // Define all relevant DOM elements
+        const dom = {
+            topicInput: document.getElementById('topic-input'),
+            generateBtn: document.getElementById('generate-btn'),
+            startChatBtn: document.getElementById('start-chat-btn'),
+            sendBtn: document.getElementById('send-btn'),
+            clearChatBtn: document.getElementById('clear-chat-btn'),
+            exitChatBtn: document.getElementById('exit-chat-btn'),
+            perspectivesContainer: document.getElementById('perspectives-container'),
+            synthesisContainer: document.getElementById('synthesis-container'),
+            analysisView: document.getElementById('analysis-view'),
+            chatView: document.getElementById('chat-view'),
+            chatLog: document.getElementById('chat-log'),
+            loadingOverlay: document.getElementById('loading-overlay'),
+            loadingText: document.getElementById('loading-text'),
+            modal: document.getElementById('modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalMessage: document.getElementById('modal-message'),
+            modalCloseBtn: document.getElementById('modal-close-btn'),
+            apiKeyInput: document.getElementById('api-key-input'),
+            apiKeyToggle: document.getElementById('api-key-toggle'),
+            eyeOpen: document.getElementById('eye-open'),
+            eyeClosed: document.getElementById('eye-closed'),
+            jsonReviewBtn: document.getElementById('json-review-btn'),
+            copyAllBtn: document.getElementById('copy-all-btn'),
+            gemCanvas: document.getElementById('gem-canvas'),
+            githubModal: document.getElementById('github-modal'),
+            githubCloseBtn: document.getElementById('github-close-btn'),
+            githubSettingsBtn: document.getElementById('github-settings-btn'),
+            modeStatus: document.getElementById('mode-status'),
+            analysisButtons: document.getElementById('analysis-buttons'),
+            chatButtons: document.getElementById('chat-buttons'),
+            brainStateInput: document.getElementById('brain-state-input'),
+            brainStateBtn: document.getElementById('brain-state-btn'),
+            brainStateStatus: document.getElementById('brain-state-status')
+        };
+        
+        // The 100 expert personas for collective intelligence
+        const personas = [
+            "First Principles Physicist", "Political Systems Analyst", "Practical Wisdom Investor", "Emergent Systems Observer", "Risk & Antifragility Expert", "Speculative Social Designer", "Strategic Tempo Analyst", "Nihilist Philosopher", "AI Systems Researcher", "Adversarial Security Thinker", "Behavioral Economist", "Evolutionary Biologist", "Quantum Theorist", "Network Topology Analyst", "Game Theory Strategist", "Complexity Scientist", "Cybernetic Systems Thinker", "Information Theory Specialist", "Cognitive Neuroscientist", "Memetic Evolution Tracker", "Chaos Theory Mathematician", "Resilience Engineer", "Systems Ecologist", "Urban Planner", "Supply Chain Optimizer", "Energy Systems Analyst", "Climate Modeler", "Pandemic Response Strategist", "Nuclear Strategy Expert", "Cyber Warfare Analyst", "Guerrilla Tactics Specialist", "Naval Strategy Historian", "Air Power Theorist", "Counterinsurgency Expert", "Economic Warfare Analyst", "Information Operations Specialist", "Cryptographer", "Social Engineer", "Penetration Tester", "Threat Intelligence Analyst", "Forensics Investigator", "Privacy Advocate", "Surveillance Critic", "Epistemologist", "Ethicist", "Logician", "Phenomenologist", "Existentialist", "Pragmatist", "Stoic Philosopher", "Utilitarian", "Deontologist", "Virtue Ethicist", "Anarchist Theorist", "Libertarian", "Democratic Socialist", "Conservative Realist", "Progressive Reformer", "Institutional Economist", "Austrian Economist", "Keynesian Macro Analyst", "Behavioral Finance Expert", "Development Economist", "Environmental Economist", "Complexity Economist", "Econophysicist", "Labor Economist", "Trade Analyst", "Monetary Policy Expert", "Fiscal Policy Strategist", "Anthropologist", "Sociologist", "Psychologist", "Linguist", "Historian", "Archaeologist", "Cultural Critic", "Media Theorist", "Religious Studies Scholar", "Comparative Mythologist", "Science Fiction Author", "Futurist", "Technology Forecaster", "Bioethicist", "Medical Ethicist", "Public Health Expert", "Epidemiologist", "Virologist", "Immunologist", "Geneticist", "Synthetic Biologist", "Neuropharmacologist", "Materials Scientist", "Nanotechnology Researcher", "Robotics Engineer", "Human Factors Engineer", "Industrial Designer", "Architect", "Civil Engineer", "Aerospace Engineer", "Chemical Engineer"
+        ];
+        
+        // --- 3D GEM VISUALIZATION (Three.js) ---
+        let scene, camera, renderer, gem, currentGemState = 'idle';
+        let isDragging = false;
+        const gemStates = {
+            idle: { speed: 0.003, color: 0x22d3ee }, // Cyan
+            loading: { speed: 0.02, color: 0x818cf8 }, // Indigo
+            error: { speed: 0, color: 0xf87171 }, // Red
+        };
+
+        function initThree() {
+            const container = dom.gemCanvas.parentNode;
+            if (!container) return;
+
+            // Set up renderer
+            renderer = new THREE.WebGLRenderer({ canvas: dom.gemCanvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+
+            // Set up scene and camera
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 2.5;
+
+            // Create the Icosahedron wireframe
+            const geometry = new THREE.IcosahedronGeometry(1.2, 1);
+            const wireframe = new THREE.WireframeGeometry(geometry);
+            const material = new THREE.LineBasicMaterial({ color: gemStates.idle.color, linewidth: 2 });
+            gem = new THREE.LineSegments(wireframe, material);
+            scene.add(gem);
+            
+            // Mouse Interaction for rotation
+            let prevMousePos = { x: 0, y: 0 };
+            const onMouseMove = (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - prevMousePos.x;
+                const deltaY = e.clientY - prevMousePos.y;
+                gem.rotation.y += deltaX * 0.005;
+                gem.rotation.x += deltaY * 0.005;
+                prevMousePos = { x: e.clientX, y: e.clientY };
+            };
+            container.addEventListener('mousedown', (e) => { isDragging = true; prevMousePos = { x: e.clientX, y: e.clientY }; e.preventDefault(); });
+            window.addEventListener('mouseup', () => isDragging = false);
+            container.addEventListener('mousemove', onMouseMove);
+            
+            // Handle resizing
+            window.addEventListener('resize', () => { 
+                const p = dom.gemCanvas.parentNode;
+                renderer.setSize(p.clientWidth, p.clientHeight);
+                camera.aspect = p.clientWidth / p.clientHeight;
+                camera.updateProjectionMatrix();
+            });
+            
+            animate();
+        }
+
+        // Animation loop
+        function animate() { 
+            requestAnimationFrame(animate); 
+            if (gem && !isDragging) {
+                // Auto-rotate if not dragging
+                gem.rotation.y += gemStates[currentGemState].speed; 
+                gem.rotation.x += gemStates[currentGemState].speed / 2; 
+            }
+            if(renderer) renderer.render(scene, camera); 
+        }
+
+        // Change the visual state of the 3D gem
+        function setGemState(state) { 
+            if (gem && gemStates[state]) { 
+                currentGemState = state; 
+                gem.material.color.setHex(gemStates[state].color); 
+            } 
+        }
+        
+        // --- UTILITY FUNCTIONS (Error, Modal, Copy) ---
+
+        function showLoading(text) { 
+            setGemState('loading'); 
+            dom.loadingText.textContent = `:: ${text.toUpperCase()} ::`; 
+            dom.loadingOverlay.classList.remove('hidden'); 
+        }
+
+        function hideLoading() { 
+            setGemState('idle'); 
+            dom.loadingOverlay.classList.add('hidden'); 
+        }
+
+        function showModal(title, message) {
+            const isError = title.toLowerCase().includes('error');
+            dom.modalTitle.textContent = title;
+            dom.modalTitle.className = `text-2xl font-bold mb-4 border-b pb-2 ${isError ? 'text-red-400 border-red-700' : 'text-cyan-400 border-slate-700'}`;
+            dom.modalMessage.innerHTML = `<div class="whitespace-pre-wrap font-mono">${message}</div>`;
+            dom.modal.classList.remove('hidden');
+        }
+
+        function showError(message, isApiError = false) { 
+            setGemState('error'); 
+            hideLoading(); 
+            if (isApiError) {
+                dom.apiKeyInput.classList.add('border-red-500');
+                showModal("API KEY ERROR", `${message}<br><br>Please verify your Gemini API key is correct and has been enabled in your Google AI Studio project.`);
+            } else {
+                showModal("CRITICAL SYSTEM ERROR", `FATAL EXCEPTION: ${message}.`); 
+            }
+        }
+        
+        // Function to copy text to clipboard
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed'; // Avoid scrolling to bottom
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showModal("Success", "Data copied to clipboard!");
+            } catch (err) {
+                showError(`Failed to copy text: ${err}`);
+            }
+            document.body.removeChild(textarea);
+        }
+        
+        // --- UI MODE SWITCHING ---
+
+        function updateUiForMode(mode) {
+            currentMode = mode;
+            dom.analysisButtons.classList.toggle('hidden', mode !== 'analysis');
+            dom.chatButtons.classList.toggle('hidden', mode !== 'chat');
+            dom.analysisView.classList.toggle('hidden', mode !== 'analysis');
+            dom.chatView.classList.toggle('hidden', mode !== 'chat');
+            if (mode === 'analysis') {
+                dom.topicInput.value = lastAnalysisTopic || '';
+                dom.topicInput.placeholder = "> ENTER TOPIC FOR ANALYSIS...";
+                dom.modeStatus.textContent = `STATUS: ANALYSIS MODE`;
+            } else {
+                dom.topicInput.value = '';
+                dom.topicInput.placeholder = "> TYPE YOUR MESSAGE...";
+                dom.modeStatus.textContent = `STATUS: CHAT MODE`;
+                renderChatHistory();
+            }
+        }
+
+        function renderChatHistory() {
+            dom.chatLog.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'} fade-in`;
+                bubble.textContent = msg.parts[0].text;
+                dom.chatLog.appendChild(bubble);
+            });
+            // Auto-scroll to the bottom of the chat log
+            dom.chatLog.scrollTop = dom.chatLog.scrollHeight;
+        }
+
+        // --- CORE LOGIC & API CALLS ---
+        
+        // Generic wrapper for Gemini API call with error handling and backoff
+        async function makeApiCall(systemInstruction, userPrompt, retryCount = 0) {
+            const apiKey = dom.apiKeyInput.value;
+            if (!apiKey) throw new Error("API Key is missing.");
+
+            const payload = {
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                contents: [{ role: "user", parts: [{ text: userPrompt }] }]
+            };
+            
+            const apiUrlWithKey = `${GEMINI_API_URL}?key=${apiKey}`;
+            const maxRetries = 5;
+
+            try {
+                const response = await fetch(apiUrlWithKey, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    const code = errorData.error?.code;
+                    let message = errorData.error?.message || "Unknown API error.";
+
+                    if (code === 400 && message.includes('API key not valid')) {
+                        throw new Error("Invalid API Key or malformed request.");
+                    }
+                    if (code === 429 && retryCount < maxRetries) {
+                        const delay = Math.pow(2, retryCount) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        // Retry the request
+                        return makeApiCall(systemInstruction, userPrompt, retryCount + 1);
+                    }
+                    if (code === 429) {
+                        message = "API Rate limit exceeded after multiple retries. Please wait a moment and try again.";
+                    }
+
+                    throw new Error(message);
+                }
+
+                const data = await response.json();
+                if (!data.candidates || !data.candidates[0].content.parts[0].text) {
+                    throw new Error("Received an unexpected response format from the API (content missing).");
+                }
+                return data.candidates[0].content.parts[0].text;
+
+            } catch (error) {
+                // Re-throw the error to be caught by the calling function (handleGenerate/handleSendMessage)
+                throw error;
+            }
+        }
+
+        // Handles the collective analysis process
+        async function handleGenerate() {
+            if (isGenerating) return;
+            const topic = dom.topicInput.value.trim();
+            lastAnalysisTopic = topic;
+            
+            if (!dom.apiKeyInput.value.trim()) {
+                 showModal("API Key Required", "Please enter your Gemini API Key before starting the analysis.");
+                 dom.apiKeyInput.classList.add('border-red-500');
+                 return;
+            }
+
+            if (!topic) {
+                showModal("Input Required", "Please enter a topic for analysis.");
+                return;
+            }
+            
+            isGenerating = true;
+            dom.generateBtn.disabled = true;
+            dom.perspectivesContainer.innerHTML = '';
+            dom.synthesisContainer.innerHTML = '';
+            dom.startChatBtn.disabled = true;
+            
+            let allPerspectives = [];
+            const initialMessage = `<div class="emg-card p-5 space-y-3 col-span-full text-center text-slate-400 text-lg">Running collective analysis... Please wait, this will take a few moments.</div>`;
+            dom.perspectivesContainer.innerHTML = initialMessage;
+
+            try {
+                // Process in batches of 5 to manage simultaneous API calls
+                const batchSize = 5; 
+                for (let i = 0; i < personas.length; i += batchSize) {
+                    const batchPersonas = personas.slice(i, i + batchSize);
+                    
+                    showLoading(`Analyzing (${Math.min(i + batchSize, personas.length)}/${personas.length})`);
+                    
+                    const batchPromises = batchPersonas.map(persona => {
+                        const systemPrompt = `You are an AI emulating the persona of a "${persona}". Provide a concise, one-paragraph analysis on the given topic from this perspective. Be direct and insightful.`;
+                        let userPrompt = `Topic: "${topic}"`;
+                        // Include brain state data if loaded
+                        if (brainStateData) {
+                            userPrompt += `\n\nReference this JSON context for your analysis:\n${JSON.stringify(brainStateData)}`;
+                        }
+                        
+                        return makeApiCall(systemPrompt, userPrompt)
+                            .then(text => ({ persona, text, success: true }))
+                            .catch(err => {
+                                 console.error(`Error for persona ${persona}:`, err);
+                                 return { persona, text: `Error: Could not generate perspective. (${err.message})`, success: false };
+                            });
+                    });
+                    
+                    const batchResults = await Promise.all(batchPromises);
+                    allPerspectives.push(...batchResults);
+                    
+                    // Clear initial message if present
+                    if(i === 0) dom.perspectivesContainer.innerHTML = '';
+                    
+                    // Display results as they come in
+                    batchResults.forEach((p, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'emg-card p-5 space-y-3 fade-in';
+                        card.style.animationDelay = `${(i + index) * 10}ms`; // Stagger animation
+                        const textColor = p.success ? 'text-cyan-400' : 'text-red-400';
+                        card.innerHTML = `<h3 class="text-md font-bold ${textColor}">${p.persona}</h3><p class="text-sm text-slate-300 leading-relaxed">${p.text}</p>`;
+                        dom.perspectivesContainer.appendChild(card);
+                    });
+                }
+                
+                // Final Synthesis Step
+                showLoading("Synthesizing Insights");
+                
+                const synthesisSystemPrompt = `You are a master synthesizer AI. You have received perspectives on a topic. Your task is to analyze all of them and create a multi-faceted, comprehensive synthesis. Structure your output in markdown with clear headings, including "KEY THEMES", "CONTRADICTIONS", and "EMERGENT INSIGHTS".`;
+                
+                // Filter out error messages for the final synthesis prompt
+                const cleanPerspectives = allPerspectives
+                    .filter(p => p.success)
+                    .map(p => `[${p.persona}]: ${p.text}`)
+                    .join('\n\n');
+
+                const synthesisUserPrompt = `Synthesize these perspectives on "${topic}":\n\n${cleanPerspectives}`;
+                
+                const synthesisText = await makeApiCall(synthesisSystemPrompt, synthesisUserPrompt);
+                
+                generatedSynthesisData = { 
+                    topic, 
+                    perspectives: allPerspectives, 
+                    synthesis: synthesisText 
+                };
+                
+                // Render the final synthesis nicely
+                const formattedSynthesis = synthesisText
+                    .replace(/### (.*?)\n/g, '<h3 class="text-xl font-bold text-cyan-400 mt-4 mb-2">$1</h3>')
+                    .replace(/## (.*?)\n/g, '<h2 class="text-2xl font-extrabold text-white border-b border-slate-700 pb-2 mb-4">$1</h2>');
+
+                dom.synthesisContainer.innerHTML = `<div class="emg-card p-6 fade-in prose prose-invert max-w-none">${formattedSynthesis}</div>`;
+                dom.startChatBtn.disabled = false;
+                dom.jsonReviewBtn.classList.remove('hidden');
+                dom.copyAllBtn.classList.remove('hidden');
+                
+            } catch (error) {
+                showError(error.message, error.message.includes("API Key"));
+            } finally {
+                isGenerating = false;
+                dom.generateBtn.disabled = false;
+                hideLoading();
+            }
+        }
+
+        // Handles chat interaction after analysis
+        async function handleSendMessage() {
+            const userMessage = dom.topicInput.value.trim();
+            if (!userMessage || isGenerating) return;
+            
+            // Add user message to history and render
+            chatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+            renderChatHistory();
+            dom.topicInput.value = '';
+            
+            dom.sendBtn.disabled = true;
+            isGenerating = true;
+            
+            showLoading("Thinking");
+            
+            try {
+                // The system is the collective intelligence, grounded in the analysis data
+                const systemPrompt = `You are a collective intelligence, synthesizing insights from 100 expert personas. Your knowledge is based on the analysis of "${lastAnalysisTopic}". Engage in a helpful, conversational, and insightful dialogue. Draw connections between the different perspectives found in the original synthesis to answer the user's question.`;
+                
+                // Construct the full context/prompt
+                let context = `--- Analysis Context ---\nTopic: "${lastAnalysisTopic}"\nSynthesis:\n${generatedSynthesisData.synthesis}\n\n`;
+                
+                // Add the preceding chat history
+                const historyForContext = chatHistory.slice(0, -1);
+                if (historyForContext.length > 0) {
+                     context += `--- Conversation History ---\n${historyForContext.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}\n\n`;
+                }
+                
+                const responseText = await makeApiCall(systemPrompt, `${context}--- Current User Query ---\nuser: ${userMessage}`);
+                
+                // Add model response to history and render
+                chatHistory.push({ role: 'model', parts: [{ text: responseText }] });
+                renderChatHistory();
+                
+            } catch (error) {
+                showError(error.message, error.message.includes("API Key"));
+                chatHistory.push({ role: 'model', parts: [{ text: `Sorry, I encountered an error during processing. Please try again.` }] });
+                renderChatHistory();
+            } finally {
+                hideLoading();
+                dom.sendBtn.disabled = false;
+                isGenerating = false;
+            }
+        }
+        
+        // --- EVENT LISTENERS & INITIALIZATION ---
+        function setupEventListeners() {
+            dom.generateBtn.addEventListener('click', handleGenerate);
+            
+            // API Key visibility toggle
+            dom.apiKeyInput.addEventListener('input', () => {
+                 dom.apiKeyInput.classList.remove('border-red-500');
+            });
+            dom.apiKeyToggle.addEventListener('click', () => {
+                const isPwd = dom.apiKeyInput.type === 'password';
+                dom.apiKeyInput.type = isPwd ? 'text' : 'password';
+                dom.eyeOpen.classList.toggle('hidden', !isPwd);
+                dom.eyeClosed.classList.toggle('hidden', isPwd);
+            });
+            
+            // Enter key submission handler
+             dom.topicInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (currentMode === 'analysis') dom.generateBtn.click();
+                    else dom.sendBtn.click();
+                }
+            });
+            
+            // Chat/Mode buttons
+            dom.startChatBtn.addEventListener('click', () => {
+                 if (!generatedSynthesisData) {
+                    showModal("Analysis Required", "Please run an analysis first before starting the chat.");
+                    return;
+                 }
+                 chatHistory = [{ role: 'model', parts: [{ text: `Collective intelligence chat initiated based on the analysis of "**${lastAnalysisTopic}**". How can I elaborate on the findings or explore specific perspectives?` }] }];
+                 updateUiForMode('chat');
+            });
+            dom.exitChatBtn.addEventListener('click', () => updateUiForMode('analysis'));
+            dom.sendBtn.addEventListener('click', handleSendMessage);
+            dom.clearChatBtn.addEventListener('click', () => {
+                 chatHistory = [{ role: 'model', parts: [{ text: 'Chat history cleared. How can I help?' }] }];
+                 renderChatHistory();
+            });
+            
+            // Utility buttons
+            dom.modalCloseBtn.addEventListener('click', () => dom.modal.classList.add('hidden'));
+            dom.githubSettingsBtn.addEventListener('click', () => dom.githubModal.classList.remove('hidden'));
+            dom.githubCloseBtn.addEventListener('click', () => dom.githubModal.classList.add('hidden'));
+
+            dom.jsonReviewBtn.addEventListener('click', () => {
+                 if (generatedSynthesisData) {
+                    const jsonString = JSON.stringify(generatedSynthesisData, null, 2);
+                    showModal("FULL ANALYSIS DATA (JSON)", jsonString);
+                 }
+            });
+            dom.copyAllBtn.addEventListener('click', () => {
+                 if (generatedSynthesisData) {
+                    const jsonString = JSON.stringify(generatedSynthesisData, null, 2);
+                    copyToClipboard(jsonString);
+                 }
+            });
+
+            // Brain state loader
+            dom.brainStateBtn.addEventListener('click', () => dom.brainStateInput.click());
+            dom.brainStateInput.addEventListener('change', async (e) => {
+                if(e.target.files.length > 0) {
+                     const file = e.target.files[0];
+                    if(file.type === 'application/json' || file.name.endsWith('.json')){
+                        try {
+                            const text = await file.text();
+                            brainStateData = JSON.parse(text);
+                            const nodeCount = Object.keys(brainStateData).length;
+                            showModal("Brain State Loaded", `Successfully loaded **${nodeCount}** memory nodes. This context will be used in the next analysis.`);
+                            dom.brainStateStatus.textContent = `LOADED: ${nodeCount} nodes active`;
+                            dom.brainStateStatus.classList.remove('text-slate-500');
+                            dom.brainStateStatus.classList.add('text-green-400');
+                        } catch (error) { 
+                            showError(`Failed to parse brain state: ${error.message}`); 
+                            dom.brainStateStatus.textContent = `ERROR: Invalid JSON`;
+                            dom.brainStateStatus.classList.remove('text-green-400');
+                            dom.brainStateStatus.classList.add('text-red-400');
+                        }
+                    } else { showError("Invalid file type. Please select a .json file."); }
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initThree(); // Initialize the 3D visualization
+            setupEventListeners(); // Set up all interactive elements
+        });
+    </script>
+</body>
+</html>
