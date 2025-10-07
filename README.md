@@ -145,7 +145,7 @@ This is a learning tool and philosophical exploration. Contributions that enhanc
 
 ## 📜 License
 
-[MIT] thow us a coffee lolz
+[MIT] throw us a coffee lolz
 
 ---
 
