@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Audit Log Component</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Roboto+Mono:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background for contrast */
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        /* Custom scrollbar for log entries */
+        #audit-log-entries::-webkit-scrollbar {
+            width: 8px;
+        }
+        #audit-log-entries::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        #audit-log-entries::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        #audit-log-entries::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body>
+
+<div id="audit-log-container" class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-4 md:p-6 w-full max-w-4xl">
+    <h2 class="text-xl md:text-2xl font-extrabold text-blue-400 mb-4 border-b border-gray-700 pb-3 flex items-center">
+        <i class="fas fa-clipboard-list mr-3 text-blue-500 text-2xl"></i> Architectural Audit Log
+    </h2>
+    <p class="text-gray-400 text-sm mb-4">
+        A chronological ledger of system operations, user interactions, and state transitions,
+        critical for **structural auditability**, transparency, and compliance with governance principles.
+    </p>
+
+    <!-- Dynamic area for displaying audit log entries -->
+    <div id="audit-log-entries" class="bg-gray-800 border border-gray-700 rounded-lg p-3 md:p-4 h-80 overflow-y-auto text-sm text-gray-300 font-mono flex flex-col-reverse">
+        <!-- Placeholder message for when no entries exist -->
+        <p class="text-gray-500 italic text-center py-4">No audit entries yet. System starting up...</p>
+    </div>
+
+    <!-- Interface for manually triggering an audit entry -->
+    <div class="mt-4 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+        <input type="text" id="audit-message-input" placeholder="Enter custom audit message..." class="flex-grow p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150">
+        <select id="audit-type-select" class="p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150">
+            <option value="INFO">INFO</option>
+            <option value="ACTION">ACTION</option>
+            <option value="WARNING">WARNING</option>
+            <option value="ERROR">ERROR</option>
+            <option value="SUCCESS">SUCCESS</option>
+        </select>
+        <button id="add-entry-button" class="p-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition duration-150 shadow-md hover:shadow-lg active:bg-blue-800">
+            Log Entry
+        </button>
+    </div>
+
+    <!--
+        JavaScript Implementation:
+        Defines the global `addAuditEntry` function and hooks it up to the UI.
+    -->
+    <script>
+        /**
+         * addAuditEntry:
+         * Appends a new audit entry to the 'audit-log-entries' container.
+         * Includes an internal error check for message validity.
+         *
+         * @param {string} message - The primary message of the audit entry.
+         * @param {string} [type='INFO'] - The type of audit event (e.g., 'INFO', 'WARNING', 'ERROR', 'ACTION', 'SUCCESS').
+         * @param {string} [timestamp] - ISO string timestamp. If not provided, current time is used.
+         */
+        window.addAuditEntry = function(message, type = 'INFO', timestamp = new Date().toISOString()) {
+            const logEntriesContainer = document.getElementById('audit-log-entries');
+
+            // --- Robustness Check (Handling invalid input) ---
+            if (!message || typeof message !== 'string' || message.trim() === '') {
+                console.error("Audit Log System Error: Attempted to log an entry with an invalid or empty message.");
+                if (logEntriesContainer) {
+                    const failureDiv = document.createElement('div');
+                    failureDiv.className = 'text-red-500 font-bold p-2 my-1 border-l-4 border-red-500 bg-red-900/40 text-xs font-mono transition duration-200 ease-in-out';
+                    failureDiv.innerHTML = `[${new Date().toTimeString().split(' ')[0]}] **AUDIT FAILURE:** Invalid message input provided. Logging attempt aborted.`;
+                    logEntriesContainer.prepend(failureDiv);
+                }
+                return; // Stop execution if input is invalid
+            }
+            // --- End Robustness Check ---
+
+
+            if (logEntriesContainer) {
+                // Remove initial placeholder message if present
+                const placeholder = logEntriesContainer.querySelector('.text-gray-500.italic');
+                if (placeholder) {
+                    placeholder.remove();
+                }
+
+                const entryDiv = document.createElement('div');
+                // Base classes for the log entry
+                entryDiv.className = `p-2 my-1 rounded-md flex items-start space-x-2 border-l-4 transition duration-200 ease-in-out hover:bg-gray-700/60`;
+
+                let typeClass = '';
+                let icon = '';
+                let typeColorClass = 'text-gray-400';
+                const upperType = type.toUpperCase();
+
+                switch (upperType) {
+                    case 'ACTION':
+                        typeClass = 'bg-blue-900/40 border-blue-500';
+                        icon = '<i class="fas fa-play-circle text-blue-400"></i>';
+                        typeColorClass = 'text-blue-300';
+                        break;
+                    case 'WARNING':
+                        typeClass = 'bg-yellow-900/40 border-yellow-500';
+                        icon = '<i class="fas fa-exclamation-triangle text-yellow-400"></i>';
+                        typeColorClass = 'text-yellow-300';
+                        break;
+                    case 'ERROR':
+                        typeClass = 'bg-red-900/40 border-red-500';
+                        icon = '<i class="fas fa-times-circle text-red-400"></i>';
+                        typeColorClass = 'text-red-300';
+                        break;
+                    case 'SUCCESS':
+                        typeClass = 'bg-green-900/40 border-green-500';
+                        icon = '<i class="fas fa-check-circle text-green-400"></i>';
+                        typeColorClass = 'text-green-300';
+                        break;
+                    default: // INFO
+                        typeClass = 'bg-gray-700/40 border-gray-500';
+                        icon = '<i class="fas fa-info-circle text-gray-400"></i>';
+                        typeColorClass = 'text-gray-400';
+                        break;
+                }
+
+                // FIX: Use string concatenation to append the type classes, 
+                // avoiding the DOMTokenList error from classList.add()
+                entryDiv.className += ` ${typeClass}`;
+                
+                const date = new Date(timestamp);
+                const timeOnly = date.toTimeString().split(' ')[0]; // HH:MM:SS format
+
+                entryDiv.innerHTML = `
+                    <span class="flex-shrink-0 pt-0.5">${icon}</span>
+                    <div class="flex-grow">
+                        <span class="text-gray-500 text-xs mr-2">[${timeOnly}]</span>
+                        <span class="uppercase font-semibold text-xs ${typeColorClass} mr-1">${upperType}:</span>
+                        <span class="text-white">${message}</span>
+                    </div>
+                `;
+
+                // Prepend new entries to display the newest at the top
+                logEntriesContainer.prepend(entryDiv);
+            }
+        };
+
+        // --- Event Listener for Manual Entry ---
+        document.getElementById('add-entry-button').addEventListener('click', () => {
+            const messageInput = document.getElementById('audit-message-input');
+            const typeSelect = document.getElementById('audit-type-select');
+
+            const message = messageInput.value.trim();
+            const type = typeSelect.value;
+
+            if (message) {
+                window.addAuditEntry(message, type);
+                messageInput.value = ''; // Clear input after logging
+            } else {
+                 // Test the internal error handling by trying to log an empty message
+                window.addAuditEntry('', 'ERROR');
+                window.addAuditEntry("Attempted to log empty message via UI.");
+            }
+        });
+
+        // --- Initial Audit Entries (for demonstrating component functionality) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.addAuditEntry === 'function') {
+                window.addAuditEntry("System initialization complete, all core modules loaded.", "SUCCESS");
+                window.addAuditEntry("Epistemic Constraints (Structural Auditable, No Value Drift) verified.", "INFO");
+                window.addAuditEntry("New 'System Audit Log' component successfully mounted and operational.", "ACTION");
+                window.addAuditEntry("Configuration check: External API gateway status is 'Online'.", "INFO");
+                window.addAuditEntry("Database connection established: PostgreSQL via ORM.", "INFO");
+                window.addAuditEntry("User 'guest' attempted login with invalid credentials.", "WARNING");
+                window.addAuditEntry("Critical dependency 'EvolvingController_v3.2' failed to meet **Structural Auditable** invariant test. System rollback initiated.", "ERROR");
+                window.addAuditEntry("Scheduled health check: All services reporting nominal status.", "INFO");
+                window.addAuditEntry("Governance policy 'DataRetention_v2' applied to new datasets.", "ACTION");
+            }
+        });
+    </script>
+</div>
+</body>
+</html>
